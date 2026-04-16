@@ -1,0 +1,39 @@
+thresholds:
+  ram:
+    warn: 70
+    critical: 85
+  gpu_vram:
+    warn: 75
+    critical: 90
+  cpu:
+    warn: 80
+    critical: 95
+  swap_proximity_buffer_pct: 8
+
+earlyoom:
+  browser_warn_pct: 20      # % of total RAM at which browser RSS triggers EASE_IN
+
+drill_cost:
+  ram_delta_pct: 8
+  cpu_spike_pct: 15
+  gpu_vram_delta_pct: 6
+
+ups:
+  device_name: "ups"
+  load_warn: 70
+  load_critical: 85
+  battery_warn: 50
+  battery_critical: 30
+
+notifications:
+  desktop: true
+  opswire: true
+  opswire_severity: WARN
+  opswire_script: ~/ops/infra_notify.sh
+
+plugins:
+  ram_monitor: true
+  cpu_monitor: true
+  gpu_monitor: true
+  ups_monitor: true
+  demo_readiness: true
