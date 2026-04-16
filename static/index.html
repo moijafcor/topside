@@ -1006,7 +1006,13 @@ const handlers = {
     el('ups-load').textContent         = d.ups_load_pct       ?? '—';
     el('ups-power').textContent        = d.ups_realpower_w    ?? '—';
     el('ups-power-arrow').textContent  = ' W' + arrow;
-    setBar(el('ups-batt-bar'), d.battery_charge_pct ?? 0, 50, 30);
+    // Battery bar: high charge = good, so color logic is inverted vs resource bars
+    const batt = d.battery_charge_pct ?? 0;
+    const battBar = el('ups-batt-bar');
+    battBar.style.width = Math.min(Math.max(batt, 0), 100) + '%';
+    battBar.classList.remove('warn', 'crit');
+    if      (batt < 30) battBar.classList.add('crit');
+    else if (batt < 50) battBar.classList.add('warn');
 
     el('s-ups').textContent  = d.ups_realpower_w != null ? d.ups_realpower_w + 'W' + arrow : '—';
     el('s-ups').style.color  = d.on_battery ? '#ef4444' : '';
