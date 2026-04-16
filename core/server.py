@@ -5,6 +5,7 @@ import logging
 import platform
 import signal
 import socket
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -239,6 +240,38 @@ async def system_info() -> JSONResponse:
 async def reload_config() -> JSONResponse:
     result = await _do_reload()
     return JSONResponse(result)
+
+
+@app.get("/api")
+async def api_snapshot() -> JSONResponse:
+    """Machine-readable snapshot of all current metrics.
+
+    Returns a single JSON object suitable for AI agent consumption:
+
+      ts        — ISO-8601 UTC timestamp of when this response was generated
+      system    — host identity (hostname, OS, kernel, arch)
+      headroom  — current GO / EASE_IN / HOLD state, promoted to the top level
+                  so agents do not need to dig through metrics to find it
+      metrics   — latest payload from every active plugin, keyed by plugin name
+    """
+    try:
+        os_name = platform.freedesktop_os_release().get("PRETTY_NAME", platform.system())
+    except Exception:
+        os_name = platform.system()
+
+    metrics = {k: v for k, v in _cache.items() if k != "headroom"}
+
+    return JSONResponse({
+        "ts":       datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "system": {
+            "hostname": socket.gethostname(),
+            "os":       os_name,
+            "kernel":   platform.release(),
+            "arch":     platform.machine(),
+        },
+        "headroom": _cache.get("headroom", {}),
+        "metrics":  metrics,
+    })
 
 
 @app.websocket("/ws")
