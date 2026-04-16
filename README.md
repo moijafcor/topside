@@ -17,13 +17,13 @@ No cloud. No agents. No npm. Runs anywhere Python 3.12 runs.
 | `gpu_monitor` | GPU utilization %, VRAM used / total / %, temperature °C, power draw W — via pynvml, no nvidia-smi subprocess | 2 s |
 | `ups_monitor` | Load %, real power W, input voltage, battery charge %, runtime estimate, on-battery / low-battery flags, power-climbing trend — via apcupsd NIS (TCP 3551, stdlib sockets), graceful degraded mode when unavailable | 2 s |
 | `ollama_monitor` | Loaded models with VRAM footprint, parameters, quantization, context length, and keepalive / unload timer — via Ollama REST API, no subprocess | 5 s |
-| `demo_readiness` | Composite **GO / EASE_IN / HOLD** headroom state with primary reason, full override list, and per-resource headroom projections | 2 s |
+| `headroom` | Composite **GO / EASE_IN / HOLD** state with primary reason, full override list, and per-resource headroom projections | 2 s |
 
 ---
 
 ## Headroom
 
-The `demo_readiness` meta-plugin reads the latest output from all other plugins and emits a single composite headroom signal every 2 s.
+The `headroom` meta-plugin reads the latest output from all other plugins and emits a single composite signal every 2 s.
 
 ### State resolution (in priority order)
 
@@ -80,7 +80,7 @@ topside/
 │   ├── gpu_monitor.py
 │   ├── ups_monitor.py
 │   ├── ollama_monitor.py     # Ollama REST API — loaded models, VRAM, keepalive state
-│   └── demo_readiness.py     # Meta-plugin: reads plugin cache, emits composite state
+│   └── headroom.py           # Meta-plugin: reads plugin cache, emits composite state
 ├── static/
 │   └── index.html            # Self-contained dashboard (Chart.js via CDN)
 ├── config.yaml
@@ -173,7 +173,7 @@ plugins:
   gpu_monitor:    true
   ups_monitor:    true
   ollama_monitor: true
-  demo_readiness: true
+  headroom: true
 ```
 
 ---

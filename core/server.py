@@ -107,8 +107,8 @@ def load_plugins(config: dict) -> dict[str, BaseCollector]:
                     and issubclass(obj, BaseCollector)
                     and obj is not BaseCollector
                 ):
-                    # demo_readiness needs the cache and config injected
-                    if module_name == "demo_readiness":
+                    # headroom needs the cache and config injected
+                    if module_name == "headroom":
                         instance = obj(_cache, config)
                     else:
                         instance = obj(config)
@@ -140,7 +140,7 @@ async def _collection_loop(name: str, plugin: BaseCollector) -> None:
                             _notifier.notify_disk_swap_activated()
                         else:
                             _notifier.notify_disk_swap_cleared()
-                    if name == "demo_readiness":
+                    if name == "headroom":
                         _notifier.notify_demo_state(payload.get("state", "GO"))
                 except Exception as exc:
                     log.warning("Notifier error for %s: %s", name, exc)

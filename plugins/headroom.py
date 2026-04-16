@@ -1,8 +1,10 @@
 from core.collector import BaseCollector, Threshold
 
 
-class DemoReadiness(BaseCollector):
-    name = "demo_readiness"
+class Headroom(BaseCollector):
+    """Meta-plugin: reads the plugin cache and emits a composite GO / EASE_IN / HOLD signal."""
+
+    name = "headroom"
     interval = 2
 
     def __init__(self, plugin_cache: dict, config: dict) -> None:
@@ -15,9 +17,9 @@ class DemoReadiness(BaseCollector):
         gpu  = self._cache.get("gpu_monitor", {})
         ups  = self._cache.get("ups_monitor", {})
 
-        cfg_thresh  = self._config.get("thresholds", {})
-        cfg_drill   = self._config.get("drill_cost", {})
-        cfg_ups     = self._config.get("ups", {})
+        cfg_thresh   = self._config.get("thresholds", {})
+        cfg_drill    = self._config.get("drill_cost", {})
+        cfg_ups      = self._config.get("ups", {})
         cfg_earlyoom = self._config.get("earlyoom", {})
 
         # Current metrics (with safe fallbacks)
@@ -28,22 +30,22 @@ class DemoReadiness(BaseCollector):
         ram_total_gb = ram.get("ram_total_gb", 0.0) or 0.0
         ram_used_gb  = ram.get("ram_used_gb",  0.0) or 0.0
 
-        swap        = ram.get("swap", {})
-        disk_swap   = swap.get("disk", {})
-        zram_swap   = swap.get("zram", {})
+        swap       = ram.get("swap", {})
+        disk_swap  = swap.get("disk", {})
+        zram_swap  = swap.get("zram", {})
 
-        disk_swap_pct      = disk_swap.get("pct", 0.0) or 0.0
-        disk_swap_vel      = disk_swap.get("velocity_mbps", 0.0) or 0.0
-        zram_swap_pct      = zram_swap.get("pct", 0.0) or 0.0
-        zram_swap_vel      = zram_swap.get("velocity_mbps", 0.0) or 0.0
+        disk_swap_pct = disk_swap.get("pct", 0.0) or 0.0
+        disk_swap_vel = disk_swap.get("velocity_mbps", 0.0) or 0.0
+        zram_swap_pct = zram_swap.get("pct", 0.0) or 0.0
+        zram_swap_vel = zram_swap.get("velocity_mbps", 0.0) or 0.0
 
         earlyoom_warn = ram.get("earlyoom_browser_warn", False)
 
-        ups_available     = ups.get("ups_available", False)
-        on_battery        = ups.get("on_battery", False)
-        low_battery       = ups.get("low_battery", False)
-        ups_load_pct      = ups.get("ups_load_pct") or 0.0
-        battery_charge    = ups.get("battery_charge_pct")
+        ups_available  = ups.get("ups_available", False)
+        on_battery     = ups.get("on_battery", False)
+        low_battery    = ups.get("low_battery", False)
+        ups_load_pct   = ups.get("ups_load_pct") or 0.0
+        battery_charge = ups.get("battery_charge_pct")
 
         # Threshold values
         crit_ram  = float(cfg_thresh.get("ram",      {}).get("critical", 85))
@@ -51,7 +53,7 @@ class DemoReadiness(BaseCollector):
         crit_vram = float(cfg_thresh.get("gpu_vram", {}).get("critical", 90))
 
         swap_buf_pct  = float(cfg_thresh.get("swap_proximity_buffer_pct", 8))
-        ups_load_warn = float(cfg_ups.get("load_warn",    70))
+        ups_load_warn = float(cfg_ups.get("load_warn",     70))
         ups_load_crit = float(cfg_ups.get("load_critical", 85))
 
         # ------------------------------------------------------------------
@@ -96,10 +98,10 @@ class DemoReadiness(BaseCollector):
         # ------------------------------------------------------------------
         # Step 3: Headroom model (only when no overrides)
         # ------------------------------------------------------------------
-        ram_delta        = float(cfg_drill.get("ram_delta_pct",       8))
-        cpu_spike        = float(cfg_drill.get("cpu_spike_pct",      15))
-        vram_delta       = float(cfg_drill.get("gpu_vram_delta_pct",  6))
-        ease_in_floor    = float(cfg_drill.get("headroom_ease_in_pct", 5))
+        ram_delta     = float(cfg_drill.get("ram_delta_pct",       8))
+        cpu_spike     = float(cfg_drill.get("cpu_spike_pct",      15))
+        vram_delta    = float(cfg_drill.get("gpu_vram_delta_pct",  6))
+        ease_in_floor = float(cfg_drill.get("headroom_ease_in_pct", 5))
 
         proj_ram  = ram_pct  + ram_delta
         proj_cpu  = cpu_pct  + cpu_spike
@@ -127,18 +129,16 @@ class DemoReadiness(BaseCollector):
             state = "EASE_IN"
             reason = ease_reasons[0]
         else:
-            # Apply headroom model
             headroom_values = [headroom_ram, headroom_cpu, headroom_vram]
             if any(h < 0 for h in headroom_values):
                 state = "HOLD"
-                # Find which resource is responsible
                 labels = ["RAM", "CPU", "GPU VRAM"]
-                first = next(l for l, h in zip(labels, headroom_values) if h < 0)
+                first = next(lbl for lbl, h in zip(labels, headroom_values) if h < 0)
                 reason = f"{first} headroom exhausted"
             elif any(h < ease_in_floor for h in headroom_values):
                 state = "EASE_IN"
                 labels = ["RAM", "CPU", "GPU VRAM"]
-                first = next(l for l, h in zip(labels, headroom_values) if h < 10)
+                first = next(lbl for lbl, h in zip(labels, headroom_values) if h < 10)
                 reason = f"{first} headroom low"
             else:
                 state = "GO"

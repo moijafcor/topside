@@ -47,4 +47,4 @@ plugins:
   ups_monitor: true
   ollama_monitor: true
   disk_monitor: true
-  demo_readiness: true
+  headroom: true
