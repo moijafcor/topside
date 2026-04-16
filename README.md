@@ -8,6 +8,17 @@ No cloud. No agents. No npm. Runs anywhere Python 3.12 runs.
 
 ---
 
+![TOPSIDE dashboard — above the fold](docs/screenshot-strip.png)
+
+<details>
+<summary>Full screenshot</summary>
+
+![TOPSIDE dashboard — full](docs/screenshot-full.png)
+
+</details>
+
+---
+
 ## What it monitors
 
 | Plugin | Metrics | Interval |
