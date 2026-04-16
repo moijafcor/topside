@@ -200,6 +200,17 @@
   }
   .model-meta span { color: var(--text); font-weight: 600; }
   .model-keepalive { color: var(--ease-in); font-size: 11px; }
+  #page-footer {
+    text-align: center;
+    padding: 20px 0 28px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  #page-footer a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  #page-footer a:hover { color: var(--text); }
   #ollama-footer {
     display: flex;
     justify-content: space-between;
@@ -1085,5 +1096,8 @@ fetch('/info')
   })
   .catch(() => {});
 </script>
+<footer id="page-footer">
+  <a href="https://github.com/moijafcor/topside" target="_blank" rel="noopener">TOPSIDE</a> v1.0.0
+</footer>
 </body>
 </html>
