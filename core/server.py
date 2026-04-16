@@ -2,7 +2,9 @@ import asyncio
 import importlib.util
 import json
 import logging
+import platform
 import signal
+import socket
 from pathlib import Path
 
 import yaml
@@ -218,6 +220,20 @@ async def startup() -> None:
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
+@app.get("/info")
+async def system_info() -> JSONResponse:
+    try:
+        os_name = platform.freedesktop_os_release().get("PRETTY_NAME", platform.system())
+    except Exception:
+        os_name = platform.system()
+    return JSONResponse({
+        "hostname": socket.gethostname(),
+        "os":       os_name,
+        "kernel":   platform.release(),
+        "arch":     platform.machine(),
+    })
+
 
 @app.get("/reload")
 async def reload_config() -> JSONResponse:

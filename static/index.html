@@ -51,6 +51,15 @@
     min-width: 90px;
     flex-shrink: 0;
   }
+  #strip-host {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    border-left: 1px solid var(--border);
+    padding-left: 14px;
+  }
   #strip-dot {
     width: 22px;
     height: 22px;
@@ -74,6 +83,17 @@
   .badge-hold { background: var(--hold);    color: #fff; }
   .badge-ease { background: var(--ease-in); color: #000; }
   #strip-extras { display: flex; align-items: center; gap: 10px; }
+
+  /* ── System header ─────────────────────────────────────────────── */
+  #sys-header {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 6px 2px 2px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  #sys-header span { color: var(--text); font-weight: 600; }
 
   /* ── Dashboard ──────────────────────────────────────────────────── */
   #dashboard {
@@ -323,12 +343,18 @@
   <div class="strip-metric" id="s-ups-wrap">UPS <span id="s-ups">—</span></div>
   <div class="strip-metric" id="s-ollama-wrap" style="display:none">LLM <span id="s-ollama">—</span></div>
   <div id="strip-extras"></div>
+  <div id="strip-host"></div>
 </div>
 
 <!-- ════════════════════════════════════════════════════
      FULL DASHBOARD
 ════════════════════════════════════════════════════ -->
 <div id="dashboard">
+  <div id="sys-header">
+    <div>host <span id="sys-hostname">—</span></div>
+    <div>os <span id="sys-os">—</span></div>
+    <div>kernel <span id="sys-kernel">—</span></div>
+  </div>
 
   <!-- ① GPU — hero panel -->
   <div class="panel">
@@ -891,6 +917,19 @@ function connect() {
 }
 
 connect();
+
+// ══════════════════════════════════════════════════════════
+// System info (fetched once on load)
+// ══════════════════════════════════════════════════════════
+fetch('/info')
+  .then(r => r.json())
+  .then(d => {
+    el('sys-hostname').textContent = d.hostname ?? '—';
+    el('sys-os').textContent       = d.os       ?? '—';
+    el('sys-kernel').textContent   = d.kernel   ?? '—';
+    el('strip-host').textContent   = d.hostname ?? '';
+  })
+  .catch(() => {});
 </script>
 </body>
 </html>
