@@ -66,6 +66,166 @@ Conditional annotations appear inline: `SWAP ▲ 340 MB/s` in red, `zram ▲` in
 
 ---
 
+## HTTP API
+
+All endpoints are unauthenticated HTTP on the configured port (default 7700).
+
+### `GET /api` — machine snapshot
+
+Single-request JSON snapshot of the entire system state. Intended for AI
+agents, automation scripts, and any caller that wants a synchronous answer
+without subscribing to the WebSocket.
+
+`headroom` is promoted to the top level of the response so a caller can
+determine GO / EASE_IN / HOLD without unpacking `metrics`.
+
+**Response fields:**
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `ts` | string | ISO-8601 UTC timestamp when the response was generated |
+| `system.hostname` | string | Machine hostname |
+| `system.os` | string | OS pretty name |
+| `system.kernel` | string | Kernel release |
+| `system.arch` | string | CPU architecture |
+| `headroom.state` | string | `GO` / `EASE_IN` / `HOLD` |
+| `headroom.reason` | string | Primary reason for the current state |
+| `headroom.overrides` | array | All active blocking and floor conditions |
+| `headroom.headroom` | object | Projected margin after drill costs: `{ram, cpu, gpu_vram}` in % — negative means the next drill would push past the critical threshold |
+| `metrics` | object | Latest payload from every active plugin, keyed by plugin name |
+
+**Example response (arrays abbreviated):**
+
+```json
+{
+  "ts": "2026-04-16T17:23:28Z",
+  "system": {
+    "hostname": "moiworkstation",
+    "os": "Ubuntu 24.04.4 LTS",
+    "kernel": "6.17.0-20-generic",
+    "arch": "x86_64"
+  },
+  "headroom": {
+    "state": "GO",
+    "reason": "All systems nominal",
+    "overrides": [],
+    "headroom": { "ram": 8.0, "cpu": 77.7, "gpu_vram": 8.7 }
+  },
+  "metrics": {
+    "cpu_monitor": {
+      "per_core_pct": [3.4, 6.4, 2.5, "…"],
+      "aggregate_pct": 2.3,
+      "load_avg": { "1m": 0.49, "5m": 0.71, "15m": 0.66 },
+      "freq_mhz": [4371.7, 4385.7, "…"]
+    },
+    "disk_monitor": {
+      "volumes": {
+        "local": [
+          { "mountpoint": "/", "device": "/dev/nvme0n1p5", "fstype": "ext4",
+            "total_gb": 1475.4, "used_gb": 243.4, "free_gb": 1157.0, "pct": 17.4 }
+        ],
+        "network": [
+          { "mountpoint": "/mnt/nas/backups", "device": "//10.0.0.158/backups",
+            "fstype": "cifs", "total_gb": 3709.2, "used_gb": 27.3, "pct": 0.7 }
+        ],
+        "root_pct": 17.4
+      },
+      "io": {
+        "nvme0n1": { "read_mbps": 0.0, "write_mbps": 1.08,
+                     "read_iops": 0.0, "write_iops": 48.0 }
+      }
+    },
+    "gpu_monitor": {
+      "util_pct": 23, "vram_used_gb": 11.98, "vram_total_gb": 15.92,
+      "vram_pct": 75.3, "temp_c": 37.0, "power_w": 20.1
+    },
+    "ollama_monitor": {
+      "available": true,
+      "loaded_models": [
+        { "name": "qwen2.5:14b", "family": "qwen2", "params": "14.8B",
+          "quantization": "Q4_K_M", "size_vram_gb": 10.12,
+          "context_length": 4096, "expires_in_s": null }
+      ],
+      "total_models": 16,
+      "total_vram_gb": 10.12
+    },
+    "ram_monitor": {
+      "ram_total_gb": 30.47, "ram_used_gb": 21.02,
+      "ram_free_gb": 9.45,   "ram_pct": 69.0,
+      "swap": {
+        "zram": { "used_gb": 1.59, "total_gb": 15.23, "pct": 10.4,
+                  "velocity_mbps": 0.0, "compression_ratio": 2.53 },
+        "disk": { "used_gb": 0.0, "total_gb": 0.0, "pct": 0.0, "velocity_mbps": 0.0 }
+      },
+      "top_processes": [
+        { "name": "chrome", "rss_mb": 12844.6, "label": "Browser (Chrome)",
+          "renderer_count": 53, "earlyoom_risk": true }
+      ],
+      "earlyoom_browser_warn": true
+    },
+    "ups_monitor": {
+      "ups_available": true, "ups_load_pct": 37.0, "ups_realpower_w": 333,
+      "input_voltage": 123.0, "battery_charge_pct": 100.0,
+      "battery_runtime_m": 16.8, "ups_status": "ONLINE",
+      "on_battery": false, "low_battery": false, "power_climbing": false
+    }
+  }
+}
+```
+
+`headroom.state == "HOLD"` means do not proceed. Check `headroom.reason` and
+`headroom.overrides` for the blocking condition(s).
+
+`ollama_monitor.loaded_models[].expires_in_s == null` indicates the model is
+set to keepalive (never unloads automatically).
+
+`ups_monitor` fields default to `null` / `false` when apcupsd NIS is unreachable;
+check `ups_available` before acting on battery or load values.
+
+---
+
+### `WebSocket /ws` — live push
+
+Streams metric updates as they arrive. Each message is a JSON object:
+
+```json
+{ "plugin": "gpu_monitor", "data": { … } }
+```
+
+Plugin names and `data` schemas match the `metrics` keys in `/api`. On connect,
+the server immediately replays the latest cached payload for every active plugin
+before switching to live updates — clients are never blank on first load.
+
+---
+
+### `GET /info` — system identity
+
+Returns hostname, OS, kernel, and arch. Subset of what `/api` provides.
+
+```json
+{ "hostname": "moiworkstation", "os": "Ubuntu 24.04.4 LTS",
+  "kernel": "6.17.0-20-generic", "arch": "x86_64" }
+```
+
+---
+
+### `GET /reload` — hot-reload config
+
+Re-reads `config.yaml` and restarts all plugin collection tasks without
+dropping WebSocket connections or the server process. Returns the active
+plugin list:
+
+```json
+{ "status": "ok", "plugins": ["cpu_monitor", "disk_monitor", "gpu_monitor",
+  "headroom", "ollama_monitor", "ram_monitor", "ups_monitor"] }
+```
+
+Can also be triggered with `kill -HUP <pid>`. Note: changes to `core/server.py`
+itself require a full process restart; `/reload` only hot-reloads plugin code
+and config.
+
+---
+
 ## Architecture
 
 ```text
@@ -73,7 +233,7 @@ topside/
 ├── core/
 │   ├── collector.py          # BaseCollector ABC + Threshold dataclass
 │   ├── notifier.py           # Edge-triggered threshold engine + notify-send / opswire dispatch
-│   └── server.py             # FastAPI app, dynamic plugin loader, WebSocket hub, /reload
+│   └── server.py             # FastAPI app, dynamic plugin loader, WebSocket hub, /api, /reload
 ├── plugins/
 │   ├── ram_monitor.py
 │   ├── cpu_monitor.py
@@ -152,7 +312,8 @@ drill_cost:
   headroom_ease_in_pct: 5   # EASE_IN when projected headroom drops below this %; HOLD at < 0 %
 
 ups:
-  device_name: "ups"
+  nis_host: "forgeworkstation"   # apcupsd NIS host
+  nis_port: 3551
   load_warn: 70
   load_critical: 85
   battery_warn: 50
