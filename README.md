@@ -346,9 +346,44 @@ plugins:
 - `apcupsd` on the host with the UPS physically attached; `ups_monitor` connects to its NIS (TCP 3551) — configure `ups.nis_host` in `config.yaml` if the UPS is on a remote machine
 - GPU monitoring requires an NVIDIA card; `ups_monitor` degrades gracefully if apcupsd NIS is unreachable; `ollama_monitor` degrades gracefully if Ollama is not running
 
+---
+
+## Install
+
+`install.py` requires only the Python that ships with the OS — no venv needed to run the installer itself.
+
 ```bash
-pip install -r requirements.txt
+# Install to ~/.local/share/topside (XDG default) and start the service
+python3 install.py --start
+
+# Custom prefix or port
+python3 install.py --prefix /opt/topside --port 8080 --start
+
+# Preview every action without executing
+python3 install.py --dry-run
+
+# Update an existing install (config.yaml is never touched)
+python3 install.py --update
+
+# Remove everything
+python3 install.py --uninstall
 ```
+
+The installer:
+
+1. Copies `core/`, `plugins/`, `static/`, and `requirements.txt` into the prefix (always overwrites — safe to re-run as an update).
+2. Creates an isolated virtualenv at `{prefix}/venv` and installs dependencies.
+3. Seeds `{prefix}/config.yaml` from `config.yaml.example` on first install only. Subsequent runs preserve your config.
+4. Generates `~/.config/systemd/user/topside.service` with the resolved prefix and venv paths.
+5. Reloads systemd and optionally enables/starts the service.
+
+**Per-machine settings to review in `config.yaml` before starting:**
+
+| Key | Default | Notes |
+| --- | ------- | ----- |
+| `ups.nis_host` | `"localhost"` | Host running apcupsd; change if UPS is on another machine |
+| `ollama.base_url` | `"http://localhost:11434"` | Ollama endpoint if not on localhost |
+| `plugins.*` | all `true` | Disable collectors you don't have hardware for |
 
 ---
 
@@ -362,11 +397,13 @@ Dashboard: `http://localhost:7700`
 
 ### Autostart with systemd
 
-```bash
-systemctl --user enable --now topside
-```
+After running `install.py --start` the service is already enabled. To manage it manually:
 
-The unit file (`topside.service`) assumes the repo lives at `~/code/topside`.
+```bash
+systemctl --user enable --now topside   # start and enable at login
+systemctl --user restart topside        # restart after config change
+journalctl --user -u topside -f         # follow logs
+```
 
 ---
 
