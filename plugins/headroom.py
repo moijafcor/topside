@@ -41,11 +41,12 @@ class Headroom(BaseCollector):
 
         earlyoom_warn = ram.get("earlyoom_browser_warn", False)
 
-        ups_available  = ups.get("ups_available", False)
-        on_battery     = ups.get("on_battery", False)
-        low_battery    = ups.get("low_battery", False)
-        ups_load_pct   = ups.get("ups_load_pct") or 0.0
-        battery_charge = ups.get("battery_charge_pct")
+        ups_available    = ups.get("ups_available", False)
+        on_battery       = ups.get("on_battery", False)
+        low_battery      = ups.get("low_battery", False)
+        ups_load_pct     = ups.get("ups_load_pct") or 0.0
+        battery_charge   = ups.get("battery_charge_pct")
+        battery_runtime  = ups.get("battery_runtime_m")
 
         # Threshold values
         crit_ram  = float(cfg_thresh.get("ram",      {}).get("critical", 85))
@@ -53,8 +54,9 @@ class Headroom(BaseCollector):
         crit_vram = float(cfg_thresh.get("gpu_vram", {}).get("critical", 90))
 
         swap_buf_pct  = float(cfg_thresh.get("swap_proximity_buffer_pct", 8))
-        ups_load_warn = float(cfg_ups.get("load_warn",     70))
-        ups_load_crit = float(cfg_ups.get("load_critical", 85))
+        ups_load_warn      = float(cfg_ups.get("load_warn",       70))
+        ups_load_crit      = float(cfg_ups.get("load_critical",   85))
+        ups_runtime_warn_m = float(cfg_ups.get("runtime_warn_m",  10))
 
         # ------------------------------------------------------------------
         # Step 1: Hard HOLD overrides
@@ -89,6 +91,8 @@ class Headroom(BaseCollector):
                 ease_reasons.append("UPS load high")
             if battery_charge is not None and battery_charge < 30 and not on_battery:
                 ease_reasons.append("Battery not fully charged")
+            if battery_runtime is not None and battery_runtime < ups_runtime_warn_m:
+                ease_reasons.append(f"UPS runtime low ({battery_runtime:.0f} min)")
 
         if ram_total_gb > 0:
             swap_proximity = (ram_total_gb - ram_used_gb) / ram_total_gb * 100
@@ -138,7 +142,7 @@ class Headroom(BaseCollector):
             elif any(h < ease_in_floor for h in headroom_values):
                 state = "EASE_IN"
                 labels = ["RAM", "CPU", "GPU VRAM"]
-                first = next(lbl for lbl, h in zip(labels, headroom_values) if h < 10)
+                first = next(lbl for lbl, h in zip(labels, headroom_values) if h < ease_in_floor)
                 reason = f"{first} headroom low"
             else:
                 state = "GO"

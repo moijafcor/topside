@@ -30,6 +30,7 @@ ups:
   load_critical: 85
   battery_warn: 50
   battery_critical: 30
+  runtime_warn_m: 10      # EASE_IN when estimated runtime drops below this many minutes
 
 notifications:
   desktop: true
