@@ -390,7 +390,43 @@
     <div>kernel <span id="sys-kernel">—</span></div>
   </div>
 
-  <!-- ① GPU — hero panel -->
+  <!-- ① UPS — collapsible -->
+  <div class="panel">
+    <div class="panel-toggle" onclick="togglePanel('ups-body', this)">
+      <div class="panel-title" style="margin-bottom:0">UPS</div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="ups-body" class="panel-body">
+      <div id="ups-unavailable" style="display:none;color:var(--muted)">apcupsd NIS unavailable</div>
+      <div id="ups-data">
+        <div id="ups-top">
+          <span class="ups-status" id="ups-status-badge">ONLINE</span>
+          <div class="stat-box">
+            <div class="metric-label">Battery</div>
+            <div><span class="metric-val" id="ups-batt">—</span><span class="metric-unit">%</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="metric-label">Runtime</div>
+            <div><span class="metric-val" id="ups-runtime">—</span><span class="metric-unit">m</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="metric-label">Load</div>
+            <div><span class="metric-val" id="ups-load">—</span><span class="metric-unit">%</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="metric-label">Power</div>
+            <div><span class="metric-val" id="ups-power">—</span><span class="metric-unit" id="ups-power-arrow"> W</span></div>
+          </div>
+        </div>
+        <div class="bar-wrap" style="margin-top:0">
+          <div class="bar-fill" id="ups-batt-bar" style="width:0%"></div>
+        </div>
+        <div class="chart-wrap"><canvas id="ups-chart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② GPU — hero panel -->
   <div class="panel">
     <div class="panel-title">GPU</div>
     <div id="gpu-hero">
@@ -426,7 +462,7 @@
     </div>
   </div>
 
-  <!-- ② Ollama — model cards -->
+  <!-- ③ Ollama — model cards -->
   <div class="panel">
     <div class="panel-title">Ollama</div>
     <div id="ollama-unavailable" style="color:var(--muted)">Ollama unavailable</div>
@@ -439,7 +475,7 @@
     </div>
   </div>
 
-  <!-- ③ Demo Readiness -->
+  <!-- ④ Demo Readiness -->
   <div class="panel">
     <div class="panel-title">Demo Readiness</div>
     <div id="dr-top">
@@ -466,7 +502,7 @@
     </div>
   </div>
 
-  <!-- ④ RAM — collapsible -->
+  <!-- ⑤ RAM — collapsible -->
   <div class="panel">
     <div class="panel-toggle" onclick="togglePanel('ram-body', this)">
       <div class="panel-title" style="margin-bottom:0">RAM</div>
@@ -517,7 +553,7 @@
     </div>
   </div>
 
-  <!-- ⑤ CPU — collapsible -->
+  <!-- ⑥ CPU — collapsible -->
   <div class="panel">
     <div class="panel-toggle" onclick="togglePanel('cpu-body', this)">
       <div class="panel-title" style="margin-bottom:0">CPU</div>
@@ -546,7 +582,7 @@
     </div>
   </div>
 
-  <!-- ⑥ Disk — collapsible -->
+  <!-- ⑦ Disk — collapsible -->
   <div class="panel">
     <div class="panel-toggle" onclick="togglePanel('disk-body', this)">
       <div class="panel-title" style="margin-bottom:0">Disk</div>
@@ -566,41 +602,6 @@
     </div>
   </div>
 
-  <!-- ⑦ UPS — collapsible -->
-  <div class="panel">
-    <div class="panel-toggle" onclick="togglePanel('ups-body', this)">
-      <div class="panel-title" style="margin-bottom:0">UPS</div>
-      <span class="chevron">▼</span>
-    </div>
-    <div id="ups-body" class="panel-body">
-      <div id="ups-unavailable" style="display:none;color:var(--muted)">NUT daemon unavailable</div>
-      <div id="ups-data">
-        <div id="ups-top">
-          <span class="ups-status" id="ups-status-badge">ONLINE</span>
-          <div class="stat-box">
-            <div class="metric-label">Battery</div>
-            <div><span class="metric-val" id="ups-batt">—</span><span class="metric-unit">%</span></div>
-          </div>
-          <div class="stat-box">
-            <div class="metric-label">Runtime</div>
-            <div><span class="metric-val" id="ups-runtime">—</span><span class="metric-unit">m</span></div>
-          </div>
-          <div class="stat-box">
-            <div class="metric-label">Load</div>
-            <div><span class="metric-val" id="ups-load">—</span><span class="metric-unit">%</span></div>
-          </div>
-          <div class="stat-box">
-            <div class="metric-label">Power</div>
-            <div><span class="metric-val" id="ups-power">—</span><span class="metric-unit" id="ups-power-arrow"> W</span></div>
-          </div>
-        </div>
-        <div class="bar-wrap" style="margin-top:0">
-          <div class="bar-fill" id="ups-batt-bar" style="width:0%"></div>
-        </div>
-        <div class="chart-wrap"><canvas id="ups-chart"></canvas></div>
-      </div>
-    </div>
-  </div>
 
 </div>
 
