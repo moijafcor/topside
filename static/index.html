@@ -305,6 +305,40 @@
   .core-bar-fill { width: 100%; background: var(--go); transition: height 0.4s ease; }
   .core-label { font-size: 8px; color: var(--muted); }
 
+  /* ── Disk Panel ─────────────────────────────────────────────────── */
+  .disk-vol-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .disk-vol-row:last-child { border-bottom: none; }
+  .disk-vol-mount { font-weight: 700; color: var(--text); }
+  .disk-vol-meta  { color: var(--muted); font-size: 11px; margin-top: 1px; }
+  .disk-vol-pct   { font-size: 16px; font-weight: 700; text-align: right; }
+  .disk-net-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 3px 0;
+    font-size: 11px;
+    border-bottom: 1px solid var(--border);
+  }
+  .disk-net-row:last-child { border-bottom: none; }
+  .disk-io-row {
+    display: grid;
+    grid-template-columns: 52px 1fr 72px;
+    gap: 8px;
+    align-items: center;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .disk-io-label { color: var(--muted); }
+  .disk-io-val   { font-weight: 700; text-align: right; }
+
   /* ── UPS Panel ──────────────────────────────────────────────────── */
   .ups-status {
     font-size: 11px;
@@ -512,7 +546,27 @@
     </div>
   </div>
 
-  <!-- ⑥ UPS — collapsible -->
+  <!-- ⑥ Disk — collapsible -->
+  <div class="panel">
+    <div class="panel-toggle" onclick="togglePanel('disk-body', this)">
+      <div class="panel-title" style="margin-bottom:0">Disk</div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="disk-body" class="panel-body">
+      <div id="disk-local"></div>
+      <div id="disk-network-wrap" style="display:none">
+        <div class="panel-title" style="margin-bottom:5px;margin-top:8px">Network Mounts</div>
+        <div id="disk-network"></div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="panel-title" style="margin-bottom:5px">Block I/O</div>
+        <div id="disk-io-rows"></div>
+        <div class="chart-wrap"><canvas id="disk-io-chart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑦ UPS — collapsible -->
   <div class="panel">
     <div class="panel-toggle" onclick="togglePanel('ups-body', this)">
       <div class="panel-title" style="margin-bottom:0">UPS</div>
@@ -651,9 +705,36 @@ function pushPoint(chart, value) {
   chart.update('none');
 }
 
+function makeChart2(canvasId, color1, color2, yMax = 100) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  const ds = (c) => ({
+    data: [], borderColor: c, backgroundColor: c + '18',
+    borderWidth: 1.5, tension: 0.3, pointRadius: 0, fill: false,
+  });
+  return new Chart(ctx, {
+    type: 'line',
+    data: { labels: Array(MAX_POINTS).fill(''), datasets: [ds(color1), ds(color2)] },
+    options: {
+      animation: false, responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { display: false }, y: { display: false, min: 0, max: yMax } }
+    }
+  });
+}
+
+function pushPoint2(chart, v1, v2) {
+  for (const [i, v] of [[0, v1], [1, v2]]) {
+    const d = chart.data.datasets[i].data;
+    d.push(v);
+    if (d.length > MAX_POINTS) d.shift();
+  }
+  chart.update('none');
+}
+
 const ramChart      = makeChart('ram-chart',       '#22c55e');
 const gpuPowerChart = makeChart('gpu-power-chart', '#f59e0b', GPU_PWR_MAX);
 const upsChart      = makeChart('ups-chart',       '#3b82f6', 1000);
+const diskIoChart   = makeChart2('disk-io-chart',  '#22c55e', '#f59e0b', 500);
 
 // ══════════════════════════════════════════════════════════
 // CPU cores
@@ -829,6 +910,72 @@ const handlers = {
     const cores = d.per_core_pct ?? [];
     ensureCores(cores.length);
     cores.forEach((v, i) => { if (coreBarEls[i]) coreBarEls[i].style.height = v + '%'; });
+  },
+
+  disk_monitor(d) {
+    const vols    = d.volumes ?? {};
+    const local   = vols.local   ?? [];
+    const network = vols.network ?? [];
+    const io      = d.io         ?? {};
+
+    // Local volumes
+    const localEl = el('disk-local');
+    localEl.innerHTML = '';
+    for (const v of local) {
+      const row = document.createElement('div');
+      row.className = 'disk-vol-row';
+      const color = v.pct >= 90 ? 'var(--hold)' : v.pct >= 80 ? 'var(--ease-in)' : 'var(--go)';
+      row.innerHTML = `
+        <div>
+          <div class="disk-vol-mount">${v.mountpoint}</div>
+          <div class="disk-vol-meta">${v.device} &nbsp;·&nbsp; ${v.fstype} &nbsp;·&nbsp; ${v.used_gb}/${v.total_gb} GB</div>
+          <div class="bar-wrap" style="margin-top:4px">
+            <div class="bar-fill ${v.pct >= 90 ? 'crit' : v.pct >= 80 ? 'warn' : ''}" style="width:${v.pct}%"></div>
+          </div>
+        </div>
+        <div class="disk-vol-pct" style="color:${color}">${v.pct}%</div>`;
+      localEl.appendChild(row);
+    }
+
+    // Network mounts
+    const netWrap = el('disk-network-wrap');
+    if (network.length > 0) {
+      netWrap.style.display = '';
+      const netEl = el('disk-network');
+      netEl.innerHTML = '';
+      for (const v of network) {
+        const row = document.createElement('div');
+        row.className = 'disk-net-row';
+        row.innerHTML = `<span style="color:var(--text);font-weight:700">${v.mountpoint}</span>`
+          + `<span style="color:var(--muted)">${v.used_gb}/${v.total_gb} GB &nbsp;`
+          + `<span style="color:${v.pct >= 90 ? 'var(--hold)' : v.pct >= 80 ? 'var(--ease-in)' : 'var(--text)'};font-weight:600">${v.pct}%</span></span>`;
+        netEl.appendChild(row);
+      }
+    } else {
+      netWrap.style.display = 'none';
+    }
+
+    // I/O rows (one per physical device)
+    const ioRowsEl = el('disk-io-rows');
+    ioRowsEl.innerHTML = '';
+    let firstDev = null;
+    for (const [dev, r] of Object.entries(io)) {
+      if (!firstDev) firstDev = r;
+      const row = document.createElement('div');
+      row.className = 'disk-io-row';
+      row.innerHTML = `<div class="disk-io-label">${dev}</div>`
+        + `<div></div>`
+        + `<div class="disk-io-val" style="color:var(--go)">R ${r.read_mbps} MB/s</div>`;
+      const row2 = document.createElement('div');
+      row2.className = 'disk-io-row';
+      row2.innerHTML = `<div></div><div></div>`
+        + `<div class="disk-io-val" style="color:var(--ease-in)">W ${r.write_mbps} MB/s</div>`;
+      ioRowsEl.appendChild(row);
+      ioRowsEl.appendChild(row2);
+    }
+
+    // Push first device to chart (NVMe typically only one physical drive for root)
+    if (firstDev) pushPoint2(diskIoChart, firstDev.read_mbps ?? 0, firstDev.write_mbps ?? 0);
   },
 
   ups_monitor(d) {

@@ -9,6 +9,9 @@ thresholds:
     warn: 80
     critical: 95
   swap_proximity_buffer_pct: 8
+  disk:
+    warn: 80
+    critical: 90
 
 earlyoom:
   browser_warn_pct: 20      # % of total RAM at which a single browser group's RSS is considered large
@@ -42,4 +45,5 @@ plugins:
   gpu_monitor: true
   ups_monitor: true
   ollama_monitor: true
+  disk_monitor: true
   demo_readiness: true
