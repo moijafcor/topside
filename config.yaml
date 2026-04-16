@@ -11,12 +11,14 @@ thresholds:
   swap_proximity_buffer_pct: 8
 
 earlyoom:
-  browser_warn_pct: 20      # % of total RAM at which browser RSS triggers EASE_IN
+  browser_warn_pct: 20      # % of total RAM at which a single browser group's RSS is considered large
+  ram_pressure_floor: 70    # earlyoom EASE_IN only fires when RAM usage also exceeds this % (earlyoom won't act while memory is plentiful)
 
 drill_cost:
   ram_delta_pct: 8
   cpu_spike_pct: 15
   gpu_vram_delta_pct: 6
+  headroom_ease_in_pct: 5   # EASE_IN when projected headroom drops below this %; HOLD at < 0%
 
 ups:
   device_name: "ups"
@@ -31,9 +33,13 @@ notifications:
   opswire_severity: WARN
   opswire_script: ~/ops/infra_notify.sh
 
+ollama:
+  base_url: "http://localhost:11434"
+
 plugins:
   ram_monitor: true
   cpu_monitor: true
   gpu_monitor: true
   ups_monitor: true
+  ollama_monitor: true
   demo_readiness: true

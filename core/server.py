@@ -167,21 +167,23 @@ async def _do_reload() -> dict:
 
     new_plugins = load_plugins(new_config)
 
-    # Stop tasks for plugins no longer enabled
-    for name in list(_tasks.keys()):
-        if name not in new_plugins:
-            _tasks[name].cancel()
-            del _tasks[name]
-            _plugins.pop(name, None)
-            log.info("Stopped plugin: %s", name)
+    # Cancel all running tasks — reload replaces every instance so config and
+    # code changes take effect immediately in all plugins.
+    for name, task in list(_tasks.items()):
+        task.cancel()
+        try:
+            await task
+        except (asyncio.CancelledError, Exception):
+            pass
+        del _tasks[name]
+        _plugins.pop(name, None)
 
-    # Start tasks for newly enabled plugins
+    # Start tasks for all enabled plugins
     for name, plugin in new_plugins.items():
-        if name not in _tasks or _tasks[name].done():
-            _plugins[name] = plugin
-            task = asyncio.create_task(_collection_loop(name, plugin), name=name)
-            _tasks[name] = task
-            log.info("Started plugin: %s", name)
+        _plugins[name] = plugin
+        task = asyncio.create_task(_collection_loop(name, plugin), name=name)
+        _tasks[name] = task
+        log.info("Reloaded plugin: %s", name)
 
     return {"status": "ok", "plugins": list(_tasks.keys())}
 

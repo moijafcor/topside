@@ -226,7 +226,9 @@
   <div class="strip-metric">CPU <span id="s-cpu">—</span></div>
   <div class="strip-metric">GPU <span id="s-gpu">—</span></div>
   <div class="strip-metric">VRAM <span id="s-vram">—</span></div>
+  <div class="strip-metric" id="s-gpu-power-wrap">PWR <span id="s-gpu-power">—</span>W</div>
   <div class="strip-metric" id="s-ups-wrap">UPS <span id="s-ups">—</span></div>
+  <div class="strip-metric" id="s-ollama-wrap" style="display:none">LLM <span id="s-ollama">—</span></div>
   <div id="strip-extras"></div>
 </div>
 
@@ -337,6 +339,41 @@
         <div class="metric-label">Power Draw</div>
         <div><span class="metric-val" id="gpu-power">—</span> <span class="metric-unit">W</span></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Ollama Panel -->
+  <div class="panel">
+    <div class="panel-title">Ollama</div>
+    <div id="ollama-unavailable" style="color:var(--muted);">Ollama unavailable</div>
+    <div id="ollama-data" style="display:none">
+      <div class="row" style="margin-bottom:8px;">
+        <div class="stat-box">
+          <div class="metric-label">Loaded</div>
+          <div><span class="metric-val" id="ollama-loaded-count">—</span> <span class="metric-unit">model(s)</span></div>
+        </div>
+        <div class="stat-box">
+          <div class="metric-label">VRAM used</div>
+          <div><span class="metric-val" id="ollama-vram">—</span> <span class="metric-unit">GB</span></div>
+        </div>
+        <div class="stat-box">
+          <div class="metric-label">Available</div>
+          <div><span class="metric-val" id="ollama-total-models">—</span> <span class="metric-unit">models installed</span></div>
+        </div>
+      </div>
+      <table id="ollama-table" style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">Model</th>
+            <th style="text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">Params</th>
+            <th style="text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">Quant</th>
+            <th style="text-align:right;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">VRAM</th>
+            <th style="text-align:right;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">Ctx</th>
+            <th style="text-align:right;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">Unloads</th>
+          </tr>
+        </thead>
+        <tbody id="ollama-tbody"></tbody>
+      </table>
     </div>
   </div>
 
@@ -575,9 +612,10 @@ const handlers = {
 
   gpu_monitor(d) {
     if (d.error) {
-      el('gpu-util').textContent      = 'ERR';
-      el('s-gpu').textContent         = '—';
-      el('s-vram').textContent        = '—';
+      el('gpu-util').textContent           = 'ERR';
+      el('s-gpu').textContent              = '—';
+      el('s-vram').textContent             = '—';
+      el('s-gpu-power').textContent        = '—';
       return;
     }
     el('gpu-util').textContent      = d.util_pct      ?? '—';
@@ -586,8 +624,9 @@ const handlers = {
     el('gpu-vram-pct').textContent  = d.vram_pct      ?? '—';
     el('gpu-temp').textContent      = d.temp_c        ?? '—';
     el('gpu-power').textContent     = d.power_w       ?? '—';
-    el('s-gpu').textContent  = (d.util_pct  ?? '—') + '%';
-    el('s-vram').textContent = (d.vram_pct  ?? '—') + '%';
+    el('s-gpu').textContent         = (d.util_pct  ?? '—') + '%';
+    el('s-vram').textContent        = (d.vram_pct  ?? '—') + '%';
+    el('s-gpu-power').textContent   = d.power_w       ?? '—';
     setBar(el('gpu-util-bar'),  d.util_pct  ?? 0, 80, 95);
     setBar(el('gpu-vram-bar'),  d.vram_pct  ?? 0, 75, 90);
   },
@@ -635,6 +674,54 @@ const handlers = {
     // UPS wattage is an absolute value so use a 0-1000W scale for chart
     const wPct = d.ups_realpower_w != null ? Math.min(d.ups_realpower_w / 1000 * 100, 100) : 0;
     pushPoint(upsChart, wPct);
+  },
+
+  ollama_monitor(d) {
+    if (!d.available) {
+      el('ollama-unavailable').style.display = '';
+      el('ollama-data').style.display = 'none';
+      el('s-ollama-wrap').style.display = 'none';
+      return;
+    }
+    el('ollama-unavailable').style.display = 'none';
+    el('ollama-data').style.display = '';
+
+    const loaded = d.loaded_models ?? [];
+    el('ollama-loaded-count').textContent  = loaded.length;
+    el('ollama-vram').textContent          = d.total_vram_gb ?? '0';
+    el('ollama-total-models').textContent  = d.total_models  ?? '—';
+
+    // Strip: show first loaded model name (truncated) or count
+    if (loaded.length > 0) {
+      el('s-ollama-wrap').style.display = '';
+      const firstName = loaded[0].name.replace(/:latest$/, '');
+      el('s-ollama').textContent = loaded.length === 1
+        ? firstName
+        : `${loaded.length} models`;
+    } else {
+      el('s-ollama-wrap').style.display = 'none';
+    }
+
+    // Model table
+    const tbody = el('ollama-tbody');
+    tbody.innerHTML = '';
+    for (const m of loaded) {
+      const tr = document.createElement('tr');
+      const expires = m.expires_in_s == null
+        ? '<span style="color:var(--muted)">keepalive</span>'
+        : m.expires_in_s > 3600
+          ? `${Math.round(m.expires_in_s / 60)}m`
+          : `${m.expires_in_s}s`;
+      const ctx = m.context_length != null ? m.context_length.toLocaleString() : '—';
+      tr.innerHTML = `
+        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;font-weight:600">${m.name}</td>
+        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;color:var(--muted)">${m.params}</td>
+        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;color:var(--muted)">${m.quantization}</td>
+        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;text-align:right">${m.size_vram_gb} GB</td>
+        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;text-align:right;color:var(--muted)">${ctx}</td>
+        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;text-align:right;color:var(--muted)">${expires}</td>`;
+      tbody.appendChild(tr);
+    }
   },
 
   demo_readiness(d) {

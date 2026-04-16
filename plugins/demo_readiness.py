@@ -78,7 +78,8 @@ class DemoReadiness(BaseCollector):
         if zram_swap_pct > 0 and zram_swap_vel > 0:
             ease_reasons.append("zram buffer active — RAM pressure building")
 
-        if earlyoom_warn:
+        earlyoom_pressure_floor = float(cfg_earlyoom.get("ram_pressure_floor", 70))
+        if earlyoom_warn and ram_pct >= earlyoom_pressure_floor:
             ease_reasons.append("earlyoom may cull browser tabs")
 
         if ups_available:
@@ -95,9 +96,10 @@ class DemoReadiness(BaseCollector):
         # ------------------------------------------------------------------
         # Step 3: Headroom model (only when no overrides)
         # ------------------------------------------------------------------
-        ram_delta  = float(cfg_drill.get("ram_delta_pct",      8))
-        cpu_spike  = float(cfg_drill.get("cpu_spike_pct",     15))
-        vram_delta = float(cfg_drill.get("gpu_vram_delta_pct", 6))
+        ram_delta        = float(cfg_drill.get("ram_delta_pct",       8))
+        cpu_spike        = float(cfg_drill.get("cpu_spike_pct",      15))
+        vram_delta       = float(cfg_drill.get("gpu_vram_delta_pct",  6))
+        ease_in_floor    = float(cfg_drill.get("headroom_ease_in_pct", 5))
 
         proj_ram  = ram_pct  + ram_delta
         proj_cpu  = cpu_pct  + cpu_spike
@@ -133,7 +135,7 @@ class DemoReadiness(BaseCollector):
                 labels = ["RAM", "CPU", "GPU VRAM"]
                 first = next(l for l, h in zip(labels, headroom_values) if h < 0)
                 reason = f"{first} headroom exhausted"
-            elif any(h < 10 for h in headroom_values):
+            elif any(h < ease_in_floor for h in headroom_values):
                 state = "EASE_IN"
                 labels = ["RAM", "CPU", "GPU VRAM"]
                 first = next(l for l, h in zip(labels, headroom_values) if h < 10)
