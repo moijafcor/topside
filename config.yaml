@@ -24,7 +24,8 @@ drill_cost:
   headroom_ease_in_pct: 5   # EASE_IN when projected headroom drops below this %; HOLD at < 0%
 
 ups:
-  device_name: "ups"
+  nis_host: "forgeworkstation"   # apcupsd NIS host (TCP port 3551)
+  nis_port: 3551
   load_warn: 70
   load_critical: 85
   battery_warn: 50

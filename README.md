@@ -15,7 +15,7 @@ No cloud. No agents. No npm. Runs anywhere Python 3.12 runs.
 | `ram_monitor` | Used / free / total RAM, swap (zram + disk) with velocity and compression ratio, top-10 processes grouped by executable with browser tab estimates and earlyoom risk flags | 2 s |
 | `cpu_monitor` | Per-core utilization, aggregate %, load averages (1 m / 5 m / 15 m), per-core frequency | 2 s |
 | `gpu_monitor` | GPU utilization %, VRAM used / total / %, temperature °C, power draw W — via pynvml, no nvidia-smi subprocess | 2 s |
-| `ups_monitor` | Load %, real power W, input voltage, battery charge %, runtime estimate, on-battery / low-battery flags, power-climbing trend — via NUT daemon, graceful degraded mode when unavailable | 2 s |
+| `ups_monitor` | Load %, real power W, input voltage, battery charge %, runtime estimate, on-battery / low-battery flags, power-climbing trend — via apcupsd NIS (TCP 3551, stdlib sockets), graceful degraded mode when unavailable | 2 s |
 | `ollama_monitor` | Loaded models with VRAM footprint, parameters, quantization, context length, and keepalive / unload timer — via Ollama REST API, no subprocess | 5 s |
 | `demo_readiness` | Composite **GO / EASE_IN / HOLD** state with primary reason, full override list, and per-resource headroom projections | 2 s |
 
@@ -182,8 +182,8 @@ plugins:
 
 - Python 3.12
 - Ubuntu 24.04 (tested on ARMOURY: Ryzen 7 7800X3D, RTX 5070 Ti, 32 GB DDR5)
-- `nut` / `nut-client` for UPS monitoring (`sudo apt install nut nut-client`)
-- GPU monitoring requires an NVIDIA card; `ups_monitor` degrades gracefully if NUT is unavailable; `ollama_monitor` degrades gracefully if Ollama is not running
+- `apcupsd` on the host with the UPS physically attached; `ups_monitor` connects to its NIS (TCP 3551) — configure `ups.nis_host` in `config.yaml` if the UPS is on a remote machine
+- GPU monitoring requires an NVIDIA card; `ups_monitor` degrades gracefully if apcupsd NIS is unreachable; `ollama_monitor` degrades gracefully if Ollama is not running
 
 ```bash
 pip install -r requirements.txt
@@ -213,7 +213,7 @@ The unit file (`topside.service`) assumes the repo lives at `~/code/topside`.
 
 - No sudo required to run
 - GPU: `nvidia-ml-py` (pynvml API) only — no `nvidia-smi` subprocess calls
-- UPS: `nut2` only — no `upsc` subprocess calls
+- UPS: apcupsd NIS protocol over stdlib `socket` — no `nut2`, no `upsc` subprocess calls
 - Ollama: stdlib `urllib` only — no extra HTTP client dependency
 - Swap: `/proc/swaps` parsed directly — no shell commands
 - Frontend: one `.html` file, Chart.js from CDN — no npm, no build step
