@@ -350,6 +350,38 @@
   .disk-io-label { color: var(--muted); }
   .disk-io-val   { font-weight: 700; text-align: right; }
 
+  /* ── Network Panel ──────────────────────────────────────────────── */
+  #net-iface-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  #net-iface-table th {
+    color: var(--muted);
+    font-weight: 500;
+    text-align: right;
+    padding: 0 6px 4px 0;
+  }
+  #net-iface-table th:first-child { text-align: left; }
+  #net-iface-table td {
+    text-align: right;
+    padding: 2px 6px 2px 0;
+    color: var(--text);
+  }
+  #net-iface-table td:first-child { text-align: left; color: var(--muted); }
+  .net-iface-name { font-weight: 600; color: var(--text) !important; }
+  .net-err { color: var(--hold); }
+  .net-chart-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 11px;
+  }
+  .net-chart-label { width: 72px; color: var(--muted); flex-shrink: 0; }
+  .net-chart-wrap { flex: 1; height: 36px; position: relative; }
+  .net-chart-wrap canvas { width: 100% !important; height: 100% !important; }
+
   /* ── UPS Panel ──────────────────────────────────────────────────── */
   .ups-status {
     font-size: 11px;
@@ -437,7 +469,36 @@
     </div>
   </div>
 
-  <!-- ② GPU — hero panel -->
+  <!-- ② CPU — collapsible -->
+  <div class="panel">
+    <div class="panel-toggle" onclick="togglePanel('cpu-body', this)">
+      <div class="panel-title" style="margin-bottom:0">CPU</div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="cpu-body" class="panel-body">
+      <div id="cpu-top">
+        <div class="stat-box">
+          <div class="metric-label">Aggregate</div>
+          <div><span class="metric-val" id="cpu-agg">—</span><span class="metric-unit">%</span></div>
+        </div>
+        <div class="stat-box">
+          <div class="metric-label">Load 1m</div>
+          <div class="metric-val" id="cpu-l1" style="font-size:16px">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="metric-label">5m</div>
+          <div class="metric-val" id="cpu-l5" style="font-size:16px">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="metric-label">15m</div>
+          <div class="metric-val" id="cpu-l15" style="font-size:16px">—</div>
+        </div>
+      </div>
+      <div id="cpu-cores"></div>
+    </div>
+  </div>
+
+  <!-- ③ GPU — hero panel -->
   <div class="panel">
     <div class="panel-title">GPU</div>
     <div id="gpu-hero">
@@ -564,36 +625,7 @@
     </div>
   </div>
 
-  <!-- ⑥ CPU — collapsible -->
-  <div class="panel">
-    <div class="panel-toggle" onclick="togglePanel('cpu-body', this)">
-      <div class="panel-title" style="margin-bottom:0">CPU</div>
-      <span class="chevron">▼</span>
-    </div>
-    <div id="cpu-body" class="panel-body">
-      <div id="cpu-top">
-        <div class="stat-box">
-          <div class="metric-label">Aggregate</div>
-          <div><span class="metric-val" id="cpu-agg">—</span><span class="metric-unit">%</span></div>
-        </div>
-        <div class="stat-box">
-          <div class="metric-label">Load 1m</div>
-          <div class="metric-val" id="cpu-l1" style="font-size:16px">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="metric-label">5m</div>
-          <div class="metric-val" id="cpu-l5" style="font-size:16px">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="metric-label">15m</div>
-          <div class="metric-val" id="cpu-l15" style="font-size:16px">—</div>
-        </div>
-      </div>
-      <div id="cpu-cores"></div>
-    </div>
-  </div>
-
-  <!-- ⑦ Disk — collapsible -->
+  <!-- ⑥ Disk — collapsible -->
   <div class="panel">
     <div class="panel-toggle" onclick="togglePanel('disk-body', this)">
       <div class="panel-title" style="margin-bottom:0">Disk</div>
@@ -609,6 +641,26 @@
         <div class="panel-title" style="margin-bottom:5px">Block I/O</div>
         <div id="disk-io-rows"></div>
         <div class="chart-wrap"><canvas id="disk-io-chart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑦ Network — collapsible -->
+  <div class="panel">
+    <div class="panel-toggle" onclick="togglePanel('net-body', this)">
+      <div class="panel-title" style="margin-bottom:0">Network</div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="net-body" class="panel-body">
+      <table id="net-iface-table">
+        <thead>
+          <tr><th>Interface</th><th>RX MB/s</th><th>TX MB/s</th><th>RX pkt/s</th><th>TX pkt/s</th><th>Errors</th></tr>
+        </thead>
+        <tbody id="net-iface-tbody"></tbody>
+      </table>
+      <div style="margin-top:8px">
+        <div class="panel-title" style="margin-bottom:5px">Throughput</div>
+        <div id="net-chart-rows"></div>
       </div>
     </div>
   </div>
@@ -747,6 +799,9 @@ const ramChart      = makeChart('ram-chart',       '#22c55e');
 const gpuPowerChart = makeChart('gpu-power-chart', '#f59e0b', GPU_PWR_MAX);
 const upsChart      = makeChart('ups-chart',       '#3b82f6', 1000);
 const diskIoChart   = makeChart2('disk-io-chart',  '#22c55e', '#f59e0b', 500);
+
+// Network charts: created lazily per interface, keyed by iface name
+const _netCharts = {};
 
 // ══════════════════════════════════════════════════════════
 // CPU cores
@@ -1029,6 +1084,40 @@ const handlers = {
     el('s-ups').style.color  = d.on_battery ? '#ef4444' : '';
 
     pushPoint(upsChart, d.ups_realpower_w ?? 0);
+  },
+
+  network_monitor(d) {
+    const ifaces = d.interfaces ?? {};
+    const tbody  = el('net-iface-tbody');
+    const chartRows = el('net-chart-rows');
+    tbody.innerHTML = '';
+
+    const names = Object.keys(ifaces).sort();
+    for (const name of names) {
+      const iface = ifaces[name];
+      const errs  = (iface.rx_errors ?? 0) + (iface.tx_errors ?? 0);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="net-iface-name">${name}</td>
+        <td>${(iface.rx_mbps ?? 0).toFixed(2)}</td>
+        <td>${(iface.tx_mbps ?? 0).toFixed(2)}</td>
+        <td>${(iface.rx_pps  ?? 0).toFixed(0)}</td>
+        <td>${(iface.tx_pps  ?? 0).toFixed(0)}</td>
+        <td class="${errs > 0 ? 'net-err' : ''}">${errs > 0 ? errs : '—'}</td>`;
+      tbody.appendChild(tr);
+
+      // Lazily create a per-interface dual-trace chart
+      if (!_netCharts[name]) {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'net-chart-row';
+        rowEl.id = `net-row-${name}`;
+        const canvasId = `net-chart-${name}`;
+        rowEl.innerHTML = `<div class="net-chart-label">${name}</div><div class="net-chart-wrap"><canvas id="${canvasId}"></canvas></div>`;
+        chartRows.appendChild(rowEl);
+        _netCharts[name] = makeChart2(canvasId, '#22c55e', '#3b82f6', 100);
+      }
+      pushPoint2(_netCharts[name], iface.rx_mbps ?? 0, iface.tx_mbps ?? 0);
+    }
   },
 };
 

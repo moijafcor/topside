@@ -48,4 +48,5 @@ plugins:
   ups_monitor: true         # requires apcupsd on nis_host
   ollama_monitor: true      # requires Ollama running on base_url
   disk_monitor: true
+  network_monitor: true
   headroom: true
