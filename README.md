@@ -28,6 +28,8 @@ No cloud. No agents. No npm. Runs anywhere Python 3.12 runs.
 | `gpu_monitor` | GPU utilization %, VRAM used / total / %, temperature °C, power draw W — via pynvml, no nvidia-smi subprocess | 2 s |
 | `ups_monitor` | Load %, real power W, input voltage, battery charge %, runtime estimate, on-battery / low-battery flags, power-climbing trend — via apcupsd NIS (TCP 3551, stdlib sockets), graceful degraded mode when unavailable | 2 s |
 | `ollama_monitor` | Loaded models with VRAM footprint, parameters, quantization, context length, and keepalive / unload timer — via Ollama REST API, no subprocess | 5 s |
+| `disk_monitor` | Local and network volume usage (ext4, xfs, btrfs, CIFS, NFS, …) with per-volume bar and root % threshold; NVMe / SATA block I/O read + write MB/s and IOPS via `/proc/diskstats` | 5 s |
+| `network_monitor` | Per-interface RX / TX MB/s, packet rate, and cumulative error counts via `/proc/net/dev`; loopback and virtual interfaces filtered | 2 s |
 | `headroom` | Composite **GO / EASE_IN / HOLD** state with primary reason, full override list, and per-resource headroom projections | 2 s |
 
 ---
@@ -49,6 +51,7 @@ The `headroom` meta-plugin reads the latest output from all other plugins and em
    - Browser RSS exceeds `earlyoom.browser_warn_pct` **and** overall RAM exceeds `earlyoom.ram_pressure_floor` — both conditions required to avoid false positives on systems with large browser sessions at idle
    - UPS load above warn threshold
    - Battery charge < 30 % while on mains
+   - UPS estimated runtime below `ups.runtime_warn_m` (default 10 min) — surfaces short runtime at high load before it becomes a hard constraint
    - Free RAM within `swap_proximity_buffer_pct` of swap boundary
 
 3. **Headroom model** — projects whether the next drill fits given configured `drill_cost` deltas:
@@ -228,7 +231,7 @@ plugin list:
 
 ```json
 { "status": "ok", "plugins": ["cpu_monitor", "disk_monitor", "gpu_monitor",
-  "headroom", "ollama_monitor", "ram_monitor", "ups_monitor"] }
+  "headroom", "network_monitor", "ollama_monitor", "ram_monitor", "ups_monitor"] }
 ```
 
 Can also be triggered with `kill -HUP <pid>`. Note: changes to `core/server.py`
@@ -251,13 +254,20 @@ topside/
 │   ├── gpu_monitor.py
 │   ├── ups_monitor.py
 │   ├── ollama_monitor.py     # Ollama REST API — loaded models, VRAM, keepalive state
+│   ├── disk_monitor.py       # Volume usage + block I/O rates via /proc/diskstats
+│   ├── network_monitor.py    # Per-interface RX/TX rates via /proc/net/dev
 │   └── headroom.py           # Meta-plugin: reads plugin cache, emits composite state
 ├── static/
 │   └── index.html            # Self-contained dashboard (Chart.js via CDN)
-├── config.yaml
-├── requirements.txt
-└── topside.service           # systemd user unit
+├── docs/
+│   ├── screenshot-strip.png  # Above-the-fold preview (README hero)
+│   └── screenshot-full.png   # Full dashboard screenshot
+├── config.yaml.example       # Versioned config template; copied to prefix on first install
+├── install.py                # stdlib-only installer — venv, systemd unit, XDG prefix
+└── requirements.txt
 ```
+
+`config.yaml` is machine-local and gitignored. The installer seeds it from `config.yaml.example` on first install and never overwrites it on subsequent updates.
 
 ### Plugin contract
 
@@ -310,6 +320,7 @@ thresholds:
   ram:        { warn: 70,  critical: 85 }
   gpu_vram:   { warn: 75,  critical: 90 }
   cpu:        { warn: 80,  critical: 95 }
+  disk:       { warn: 80,  critical: 90 }
   swap_proximity_buffer_pct: 8
 
 earlyoom:
@@ -323,29 +334,32 @@ drill_cost:
   headroom_ease_in_pct: 5   # EASE_IN when projected headroom drops below this %; HOLD at < 0 %
 
 ups:
-  nis_host: "forgeworkstation"   # apcupsd NIS host
+  nis_host: "localhost"      # apcupsd NIS host — change if UPS is on another machine
   nis_port: 3551
   load_warn: 70
   load_critical: 85
   battery_warn: 50
   battery_critical: 30
+  runtime_warn_m: 10         # EASE_IN when estimated runtime drops below this many minutes
 
 notifications:
   desktop: true
-  opswire: true
+  opswire: false             # set to true if you have an ops notification pipeline
   opswire_severity: WARN
-  opswire_script: ~/ops/infra_notify.sh
+  opswire_script: ""         # path to notification script, e.g. ~/ops/infra_notify.sh
 
 ollama:
   base_url: "http://localhost:11434"
 
 plugins:
-  ram_monitor:    true
-  cpu_monitor:    true
-  gpu_monitor:    true
-  ups_monitor:    true
-  ollama_monitor: true
-  headroom: true
+  ram_monitor:     true
+  cpu_monitor:     true
+  gpu_monitor:     true      # requires NVIDIA GPU with nvidia-ml-py
+  ups_monitor:     true      # requires apcupsd on nis_host
+  ollama_monitor:  true      # requires Ollama running on base_url
+  disk_monitor:    true
+  network_monitor: true
+  headroom:        true
 ```
 
 ---
@@ -425,4 +439,6 @@ journalctl --user -u topside -f         # follow logs
 - UPS: apcupsd NIS protocol over stdlib `socket` — no `nut2`, no `upsc` subprocess calls
 - Ollama: stdlib `urllib` only — no extra HTTP client dependency
 - Swap: `/proc/swaps` parsed directly — no shell commands
+- Disk I/O: `/proc/diskstats` parsed directly — no shell commands
+- Network: `/proc/net/dev` parsed directly — no shell commands
 - Frontend: one `.html` file, Chart.js from CDN — no npm, no build step
