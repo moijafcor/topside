@@ -27,7 +27,7 @@ class Notifier:
             if metric is None:
                 continue
             fired = self._state.get(t.name, False)
-            over = metric >= t.value
+            over = metric >= t.value if t.direction == "above" else metric <= t.value
             if over and not fired:
                 self._state[t.name] = True
                 urgency = "critical" if t.level == "critical" else "normal"

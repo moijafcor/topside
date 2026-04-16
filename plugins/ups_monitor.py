@@ -133,17 +133,21 @@ class UpsMonitor(BaseCollector):
                 "low_battery":         low_battery,
                 "power_climbing":      power_climbing,
             }
-        except Exception as exc:
+        except (KeyError, TypeError, ValueError) as exc:
             log.error("UPS data parse error: %s", exc)
             return dict(_DEGRADED)
 
     def thresholds(self) -> list[Threshold]:
         cfg = self._config.get("ups", {})
+        load_warn  = float(cfg.get("load_warn",        70))
+        load_crit  = float(cfg.get("load_critical",    85))
+        batt_warn  = float(cfg.get("battery_warn",     50))
+        batt_crit  = float(cfg.get("battery_critical", 30))
         return [
-            Threshold("ups_load_warn",     "ups_monitor", "ups_load_pct",       "warn",     float(cfg.get("load_warn",        70))),
-            Threshold("ups_load_critical", "ups_monitor", "ups_load_pct",       "critical", float(cfg.get("load_critical",    85))),
-            Threshold("ups_batt_warn",     "ups_monitor", "battery_charge_pct", "warn",     float(cfg.get("battery_warn",     50))),
-            Threshold("ups_batt_critical", "ups_monitor", "battery_charge_pct", "critical", float(cfg.get("battery_critical", 30))),
+            Threshold("ups_load_warn",     "ups_monitor", "ups_load_pct",       "warn",     load_warn),
+            Threshold("ups_load_critical", "ups_monitor", "ups_load_pct",       "critical", load_crit),
+            Threshold("ups_batt_warn",     "ups_monitor", "battery_charge_pct", "warn",     batt_warn, direction="below"),
+            Threshold("ups_batt_critical", "ups_monitor", "battery_charge_pct", "critical", batt_crit, direction="below"),
         ]
 
     @staticmethod
