@@ -48,11 +48,12 @@
     gap: 6px;
     font-weight: 700;
     font-size: 13px;
-    min-width: 100px;
+    min-width: 90px;
+    flex-shrink: 0;
   }
   #strip-dot {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     background: var(--muted);
     flex-shrink: 0;
@@ -70,47 +71,46 @@
     border-radius: 3px;
     white-space: nowrap;
   }
-  .badge-hold   { background: var(--hold);    color: #fff; }
-  .badge-ease   { background: var(--ease-in); color: #000; }
-  .badge-go     { background: var(--go);      color: #000; }
+  .badge-hold { background: var(--hold);    color: #fff; }
+  .badge-ease { background: var(--ease-in); color: #000; }
   #strip-extras { display: flex; align-items: center; gap: 10px; }
 
   /* ── Dashboard ──────────────────────────────────────────────────── */
   #dashboard {
-    max-width: 1100px;
+    max-width: 520px;
     margin: 0 auto;
-    padding: 16px 16px 32px;
+    padding: 12px 12px 32px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
   }
   .panel {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 14px 16px;
+    padding: 12px 14px;
   }
   .panel-title {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 10px;
   }
-  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .metric-label { color: var(--muted); font-size: 12px; }
-  .metric-val { font-size: 20px; font-weight: 700; }
-  .metric-unit { color: var(--muted); font-size: 12px; }
+  .metric-label { color: var(--muted); font-size: 11px; margin-bottom: 1px; }
+  .metric-val   { font-size: 20px; font-weight: 700; }
+  .metric-unit  { color: var(--muted); font-size: 12px; }
+  .stat-box     { display: flex; flex-direction: column; }
 
   /* Bars */
   .bar-wrap {
-    background: #0f172a;
+    background: #0a0f1e;
     border-radius: 4px;
-    height: 8px;
+    height: 7px;
     width: 100%;
     overflow: hidden;
-    margin-top: 4px;
+    margin-top: 5px;
   }
   .bar-fill {
     height: 100%;
@@ -118,52 +118,118 @@
     transition: width 0.4s ease;
     background: var(--go);
   }
-  .bar-fill.warn   { background: var(--ease-in); }
-  .bar-fill.crit   { background: var(--hold); }
+  .bar-fill.warn { background: var(--ease-in); }
+  .bar-fill.crit { background: var(--hold); }
 
-  /* Per-core CPU */
-  #cpu-cores {
+  /* Chart containers */
+  .chart-wrap { position: relative; height: 56px; margin-top: 8px; }
+
+  /* ── GPU Panel ──────────────────────────────────────────────────── */
+  #gpu-hero {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 16px;
+    align-items: end;
+    margin-bottom: 2px;
+  }
+  #gpu-power-val {
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    transition: color 0.6s ease;
+    color: var(--muted);
+  }
+  #gpu-power-unit {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--muted);
+    padding-bottom: 6px;
+    align-self: end;
+  }
+  .gpu-stat { text-align: right; }
+  #gpu-vram-row {
     display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 10px;
+    margin-bottom: 3px;
+  }
+
+  /* ── Ollama Panel ───────────────────────────────────────────────── */
+  .model-card {
+    background: #0a0f1e;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+  }
+  .model-card:last-child { margin-bottom: 0; }
+  .model-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .model-meta {
+    display: flex;
+    gap: 10px;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
   }
-  .core-bar {
+  .model-meta span { color: var(--text); font-weight: 600; }
+  .model-keepalive { color: var(--ease-in); font-size: 11px; }
+  #ollama-footer {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── Demo Readiness Panel ───────────────────────────────────────── */
+  #dr-top {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  #dr-state-badge {
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+  #dr-reason { color: var(--muted); font-size: 12px; }
+  #dr-overrides { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
+  .override-item      { font-size: 11px; color: var(--ease-in); }
+  .override-item.hold { color: var(--hold); }
+  #dr-headroom { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+  .headroom-row {
+    display: grid;
+    grid-template-columns: 52px 1fr 44px;
+    gap: 8px;
     align-items: center;
-    gap: 2px;
-    width: 28px;
   }
-  .core-bar-track {
-    width: 100%;
-    height: 48px;
-    background: #0f172a;
-    border-radius: 3px;
-    display: flex;
-    align-items: flex-end;
-    overflow: hidden;
-  }
-  .core-bar-fill {
-    width: 100%;
-    background: var(--go);
-    transition: height 0.4s ease;
-  }
-  .core-label { font-size: 9px; color: var(--muted); }
+  .headroom-label { font-size: 11px; color: var(--muted); }
+  .headroom-val   { font-size: 11px; font-weight: 700; text-align: right; }
 
-  /* Process table */
-  #proc-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
-  #proc-table th { color: var(--muted); font-weight: 600; text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--border); }
-  #proc-table td { padding: 3px 6px; border-bottom: 1px solid #1e293b; }
-  .risk-flag { color: var(--ease-in); font-size: 10px; margin-left: 4px; }
-
-  /* Swap rows */
+  /* ── RAM Panel ──────────────────────────────────────────────────── */
+  #ram-top {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
   .swap-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 0;
+    gap: 8px;
+    padding: 5px 0;
     border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    flex-wrap: wrap;
   }
   .swap-row:last-child { border-bottom: none; }
   .type-badge {
@@ -171,45 +237,72 @@
     font-weight: 700;
     padding: 1px 5px;
     border-radius: 3px;
+    flex-shrink: 0;
   }
-  .badge-disk       { background: var(--hold);    color: #fff; }
-  .badge-compressed { background: #3b82f6;        color: #fff; }
-  .badge-ok         { background: #1e293b;        color: var(--muted); }
+  .badge-disk       { background: var(--hold); color: #fff; }
+  .badge-compressed { background: #3b82f6;     color: #fff; }
+  #proc-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11px; }
+  #proc-table th { color: var(--muted); font-weight: 600; text-align: left; padding: 2px 5px; border-bottom: 1px solid var(--border); }
+  #proc-table td { padding: 2px 5px; border-bottom: 1px solid #0f172a; }
+  .risk-flag { color: var(--ease-in); font-size: 10px; margin-left: 3px; }
 
-  /* UPS status badge */
+  /* Collapsible secondary panels */
+  .panel-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  .panel-toggle .chevron { color: var(--muted); font-size: 10px; transition: transform 0.2s; }
+  .panel-toggle.collapsed .chevron { transform: rotate(-90deg); }
+  .panel-body { margin-top: 10px; }
+  .panel-body.hidden { display: none; }
+
+  /* ── CPU Panel ──────────────────────────────────────────────────── */
+  #cpu-top {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr 1fr;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 8px;
+  }
+  #cpu-cores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .core-bar { display: flex; flex-direction: column; align-items: center; gap: 1px; width: 24px; }
+  .core-bar-track {
+    width: 100%;
+    height: 40px;
+    background: #0a0f1e;
+    border-radius: 3px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+  }
+  .core-bar-fill { width: 100%; background: var(--go); transition: height 0.4s ease; }
+  .core-label { font-size: 8px; color: var(--muted); }
+
+  /* ── UPS Panel ──────────────────────────────────────────────────── */
   .ups-status {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
-    padding: 2px 8px;
+    padding: 2px 7px;
     border-radius: 4px;
     background: var(--go);
     color: #000;
   }
-  .ups-status.on-battery { background: var(--hold); color: #fff; }
+  .ups-status.on-battery  { background: var(--hold); color: #fff; }
   .ups-status.low-battery { background: var(--hold); color: #fff; }
-
-  /* Demo Readiness panel */
-  #dr-state-badge {
-    font-size: 28px;
-    font-weight: 900;
-    letter-spacing: 0.05em;
+  #ups-top {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    align-items: end;
+    margin-bottom: 8px;
   }
-  #dr-reason { color: var(--muted); font-size: 13px; margin-top: 4px; }
-  #dr-overrides { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
-  .override-item { font-size: 12px; color: var(--ease-in); }
-  .override-item.hold { color: var(--hold); }
-  #dr-headroom { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
-  .headroom-row { display: grid; grid-template-columns: 60px 1fr 50px; gap: 8px; align-items: center; }
-  .headroom-label { font-size: 12px; color: var(--muted); }
-  .headroom-val { font-size: 12px; font-weight: 700; text-align: right; }
-
-  /* Chart containers */
-  .chart-wrap { position: relative; height: 60px; margin-top: 8px; }
-
-  /* Grid layouts */
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-  .stat-box { display: flex; flex-direction: column; gap: 2px; }
 </style>
 </head>
 <body>
@@ -237,202 +330,194 @@
 ════════════════════════════════════════════════════ -->
 <div id="dashboard">
 
-  <!-- RAM Panel -->
-  <div class="panel">
-    <div class="panel-title">RAM</div>
-    <div class="row">
-      <div class="stat-box">
-        <div class="metric-label">Used</div>
-        <div><span class="metric-val" id="ram-used">—</span> <span class="metric-unit">GB</span></div>
-      </div>
-      <div class="stat-box">
-        <div class="metric-label">Total</div>
-        <div><span class="metric-val" id="ram-total">—</span> <span class="metric-unit">GB</span></div>
-      </div>
-      <div class="stat-box">
-        <div class="metric-label">Usage</div>
-        <div><span class="metric-val" id="ram-pct">—</span> <span class="metric-unit">%</span></div>
-      </div>
-    </div>
-    <div class="bar-wrap" style="margin-top:8px;">
-      <div class="bar-fill" id="ram-bar" style="width:0%"></div>
-    </div>
-    <div class="chart-wrap"><canvas id="ram-chart"></canvas></div>
-    <!-- Swap sub-panel -->
-    <div style="margin-top:10px;">
-      <div class="panel-title" style="margin-bottom:6px;">Swap</div>
-      <div id="swap-zram" class="swap-row">
-        <span class="type-badge badge-compressed">COMPRESSED</span>
-        <span id="swap-zram-used">—</span> GB /
-        <span id="swap-zram-total">—</span> GB
-        (<span id="swap-zram-pct">—</span>%)
-        vel: <span id="swap-zram-vel">—</span> MB/s
-        ratio: <span id="swap-zram-ratio">—</span>
-      </div>
-      <div id="swap-disk" class="swap-row">
-        <span class="type-badge badge-disk">DISK</span>
-        <span id="swap-disk-used">—</span> GB /
-        <span id="swap-disk-total">—</span> GB
-        (<span id="swap-disk-pct">—</span>%)
-        vel: <span id="swap-disk-vel">—</span> MB/s
-      </div>
-    </div>
-    <!-- Process table -->
-    <div style="margin-top:10px;">
-      <div class="panel-title" style="margin-bottom:4px;">Top Processes</div>
-      <table id="proc-table">
-        <thead><tr><th>Process</th><th>RSS (MB)</th><th>Note</th></tr></thead>
-        <tbody id="proc-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- CPU Panel -->
-  <div class="panel">
-    <div class="panel-title">CPU</div>
-    <div class="row">
-      <div class="stat-box">
-        <div class="metric-label">Aggregate</div>
-        <div><span class="metric-val" id="cpu-agg">—</span> <span class="metric-unit">%</span></div>
-      </div>
-      <div class="stat-box">
-        <div class="metric-label">Load 1m</div>
-        <div><span class="metric-val" id="cpu-l1">—</span></div>
-      </div>
-      <div class="stat-box">
-        <div class="metric-label">5m</div>
-        <div><span class="metric-val" id="cpu-l5">—</span></div>
-      </div>
-      <div class="stat-box">
-        <div class="metric-label">15m</div>
-        <div><span class="metric-val" id="cpu-l15">—</span></div>
-      </div>
-    </div>
-    <div id="cpu-cores"></div>
-  </div>
-
-  <!-- GPU Panel -->
+  <!-- ① GPU — hero panel -->
   <div class="panel">
     <div class="panel-title">GPU</div>
-    <div class="two-col">
+    <div id="gpu-hero">
       <div>
-        <div class="metric-label">Utilization</div>
-        <div><span class="metric-val" id="gpu-util">—</span> <span class="metric-unit">%</span></div>
-        <div class="bar-wrap"><div class="bar-fill" id="gpu-util-bar" style="width:0%"></div></div>
-      </div>
-      <div>
-        <div class="metric-label">VRAM</div>
-        <div>
-          <span class="metric-val" id="gpu-vram-used">—</span>
-          <span class="metric-unit"> / </span>
-          <span id="gpu-vram-total">—</span>
-          <span class="metric-unit"> GB</span>
-          <span style="color:var(--muted)"> (<span id="gpu-vram-pct">—</span>%)</span>
-        </div>
-        <div class="bar-wrap"><div class="bar-fill" id="gpu-vram-bar" style="width:0%"></div></div>
-      </div>
-      <div class="stat-box">
-        <div class="metric-label">Temperature</div>
-        <div><span class="metric-val" id="gpu-temp">—</span> <span class="metric-unit">°C</span></div>
-      </div>
-      <div class="stat-box">
         <div class="metric-label">Power Draw</div>
-        <div><span class="metric-val" id="gpu-power">—</span> <span class="metric-unit">W</span></div>
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <span id="gpu-power-val">—</span>
+          <span id="gpu-power-unit">W</span>
+        </div>
       </div>
+      <div class="gpu-stat stat-box">
+        <div class="metric-label">Utilization</div>
+        <div><span class="metric-val" id="gpu-util">—</span><span class="metric-unit">%</span></div>
+        <div class="bar-wrap" style="width:72px;margin-top:5px">
+          <div class="bar-fill" id="gpu-util-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="gpu-stat stat-box">
+        <div class="metric-label">Temp</div>
+        <div><span class="metric-val" id="gpu-temp">—</span><span class="metric-unit">°C</span></div>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="gpu-power-chart"></canvas></div>
+    <div id="gpu-vram-row">
+      <span class="metric-label">VRAM</span>
+      <span>
+        <span id="gpu-vram-used">—</span><span class="metric-unit"> / </span><span id="gpu-vram-total">—</span><span class="metric-unit"> GB</span>
+        <span style="color:var(--muted)"> (<span id="gpu-vram-pct">—</span>%)</span>
+      </span>
+    </div>
+    <div class="bar-wrap" style="margin-top:0">
+      <div class="bar-fill" id="gpu-vram-bar" style="width:0%"></div>
     </div>
   </div>
 
-  <!-- Ollama Panel -->
+  <!-- ② Ollama — model cards -->
   <div class="panel">
     <div class="panel-title">Ollama</div>
-    <div id="ollama-unavailable" style="color:var(--muted);">Ollama unavailable</div>
+    <div id="ollama-unavailable" style="color:var(--muted)">Ollama unavailable</div>
     <div id="ollama-data" style="display:none">
-      <div class="row" style="margin-bottom:8px;">
-        <div class="stat-box">
-          <div class="metric-label">Loaded</div>
-          <div><span class="metric-val" id="ollama-loaded-count">—</span> <span class="metric-unit">model(s)</span></div>
-        </div>
-        <div class="stat-box">
-          <div class="metric-label">VRAM used</div>
-          <div><span class="metric-val" id="ollama-vram">—</span> <span class="metric-unit">GB</span></div>
-        </div>
-        <div class="stat-box">
-          <div class="metric-label">Available</div>
-          <div><span class="metric-val" id="ollama-total-models">—</span> <span class="metric-unit">models installed</span></div>
-        </div>
+      <div id="ollama-models"></div>
+      <div id="ollama-footer">
+        <span><span id="ollama-total-models">—</span> models installed</span>
+        <span>LLM VRAM <span style="color:var(--text);font-weight:600" id="ollama-vram">—</span> GB</span>
       </div>
-      <table id="ollama-table" style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;">
-        <thead>
-          <tr>
-            <th style="text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">Model</th>
-            <th style="text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">Params</th>
-            <th style="text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">Quant</th>
-            <th style="text-align:right;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">VRAM</th>
-            <th style="text-align:right;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">Ctx</th>
-            <th style="text-align:right;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;">Unloads</th>
-          </tr>
-        </thead>
-        <tbody id="ollama-tbody"></tbody>
-      </table>
     </div>
   </div>
 
-  <!-- UPS Panel -->
-  <div class="panel">
-    <div class="panel-title">UPS</div>
-    <div id="ups-unavailable" style="display:none;color:var(--muted);">NUT daemon unavailable</div>
-    <div id="ups-data">
-      <div class="row" style="margin-bottom:8px;">
-        <span class="ups-status" id="ups-status-badge">ONLINE</span>
-        <div class="stat-box">
-          <div class="metric-label">Battery</div>
-          <div><span class="metric-val" id="ups-batt">—</span><span class="metric-unit">%</span></div>
-        </div>
-        <div class="stat-box">
-          <div class="metric-label">Runtime</div>
-          <div><span class="metric-val" id="ups-runtime">—</span><span class="metric-unit"> min</span></div>
-        </div>
-        <div class="stat-box">
-          <div class="metric-label">Load</div>
-          <div><span class="metric-val" id="ups-load">—</span><span class="metric-unit">%</span></div>
-        </div>
-        <div class="stat-box">
-          <div class="metric-label">Power</div>
-          <div><span class="metric-val" id="ups-power">—</span><span class="metric-unit" id="ups-power-arrow"> W</span></div>
-        </div>
-        <div class="stat-box">
-          <div class="metric-label">Input V</div>
-          <div><span class="metric-val" id="ups-voltage">—</span><span class="metric-unit"> V</span></div>
-        </div>
-      </div>
-      <div class="bar-wrap">
-        <div class="bar-fill" id="ups-batt-bar" style="width:0%"></div>
-      </div>
-      <div class="chart-wrap"><canvas id="ups-chart"></canvas></div>
-    </div>
-  </div>
-
-  <!-- Demo Readiness Panel -->
+  <!-- ③ Demo Readiness -->
   <div class="panel">
     <div class="panel-title">Demo Readiness</div>
-    <div id="dr-state-badge">—</div>
-    <div id="dr-reason">Waiting for data…</div>
+    <div id="dr-top">
+      <div id="dr-state-badge">—</div>
+      <div id="dr-reason">Waiting…</div>
+    </div>
     <div id="dr-overrides"></div>
     <div id="dr-headroom">
       <div class="headroom-row">
         <div class="headroom-label">RAM</div>
-        <div class="bar-wrap"><div class="bar-fill" id="hr-ram-bar" style="width:0%"></div></div>
+        <div class="bar-wrap" style="margin-top:0"><div class="bar-fill" id="hr-ram-bar" style="width:0%"></div></div>
         <div class="headroom-val" id="hr-ram-val">—</div>
       </div>
       <div class="headroom-row">
         <div class="headroom-label">CPU</div>
-        <div class="bar-wrap"><div class="bar-fill" id="hr-cpu-bar" style="width:0%"></div></div>
+        <div class="bar-wrap" style="margin-top:0"><div class="bar-fill" id="hr-cpu-bar" style="width:0%"></div></div>
         <div class="headroom-val" id="hr-cpu-val">—</div>
       </div>
       <div class="headroom-row">
         <div class="headroom-label">VRAM</div>
-        <div class="bar-wrap"><div class="bar-fill" id="hr-vram-bar" style="width:0%"></div></div>
+        <div class="bar-wrap" style="margin-top:0"><div class="bar-fill" id="hr-vram-bar" style="width:0%"></div></div>
         <div class="headroom-val" id="hr-vram-val">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ RAM — collapsible -->
+  <div class="panel">
+    <div class="panel-toggle" onclick="togglePanel('ram-body', this)">
+      <div class="panel-title" style="margin-bottom:0">RAM</div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="ram-body" class="panel-body">
+      <div id="ram-top">
+        <div class="stat-box">
+          <div class="metric-label">Used</div>
+          <div><span class="metric-val" id="ram-used">—</span><span class="metric-unit"> GB</span></div>
+        </div>
+        <div class="stat-box">
+          <div class="metric-label">Free</div>
+          <div><span class="metric-val" id="ram-free">—</span><span class="metric-unit"> GB</span></div>
+        </div>
+        <div class="stat-box">
+          <div class="metric-label">Usage</div>
+          <div><span class="metric-val" id="ram-pct">—</span><span class="metric-unit">%</span></div>
+        </div>
+      </div>
+      <div class="bar-wrap" style="margin-top:0">
+        <div class="bar-fill" id="ram-bar" style="width:0%"></div>
+      </div>
+      <div class="chart-wrap"><canvas id="ram-chart"></canvas></div>
+      <div style="margin-top:8px">
+        <div class="panel-title" style="margin-bottom:5px">Swap</div>
+        <div class="swap-row">
+          <span class="type-badge badge-compressed">ZRAM</span>
+          <span id="swap-zram-used">—</span>/<span id="swap-zram-total">—</span> GB
+          &nbsp;<span style="color:var(--muted)">(<span id="swap-zram-pct">—</span>%)</span>
+          &nbsp;<span style="color:var(--muted)">vel</span> <span id="swap-zram-vel">—</span> MB/s
+          &nbsp;<span style="color:var(--muted)">ratio</span> <span id="swap-zram-ratio">—</span>
+        </div>
+        <div class="swap-row">
+          <span class="type-badge badge-disk">DISK</span>
+          <span id="swap-disk-used">—</span>/<span id="swap-disk-total">—</span> GB
+          &nbsp;<span style="color:var(--muted)">(<span id="swap-disk-pct">—</span>%)</span>
+          &nbsp;<span style="color:var(--muted)">vel</span> <span id="swap-disk-vel">—</span> MB/s
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="panel-title" style="margin-bottom:4px">Top Processes</div>
+        <table id="proc-table">
+          <thead><tr><th>Process</th><th>MB</th><th>Note</th></tr></thead>
+          <tbody id="proc-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ CPU — collapsible -->
+  <div class="panel">
+    <div class="panel-toggle" onclick="togglePanel('cpu-body', this)">
+      <div class="panel-title" style="margin-bottom:0">CPU</div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="cpu-body" class="panel-body">
+      <div id="cpu-top">
+        <div class="stat-box">
+          <div class="metric-label">Aggregate</div>
+          <div><span class="metric-val" id="cpu-agg">—</span><span class="metric-unit">%</span></div>
+        </div>
+        <div class="stat-box">
+          <div class="metric-label">Load 1m</div>
+          <div class="metric-val" id="cpu-l1" style="font-size:16px">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="metric-label">5m</div>
+          <div class="metric-val" id="cpu-l5" style="font-size:16px">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="metric-label">15m</div>
+          <div class="metric-val" id="cpu-l15" style="font-size:16px">—</div>
+        </div>
+      </div>
+      <div id="cpu-cores"></div>
+    </div>
+  </div>
+
+  <!-- ⑥ UPS — collapsible -->
+  <div class="panel">
+    <div class="panel-toggle" onclick="togglePanel('ups-body', this)">
+      <div class="panel-title" style="margin-bottom:0">UPS</div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="ups-body" class="panel-body">
+      <div id="ups-unavailable" style="display:none;color:var(--muted)">NUT daemon unavailable</div>
+      <div id="ups-data">
+        <div id="ups-top">
+          <span class="ups-status" id="ups-status-badge">ONLINE</span>
+          <div class="stat-box">
+            <div class="metric-label">Battery</div>
+            <div><span class="metric-val" id="ups-batt">—</span><span class="metric-unit">%</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="metric-label">Runtime</div>
+            <div><span class="metric-val" id="ups-runtime">—</span><span class="metric-unit">m</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="metric-label">Load</div>
+            <div><span class="metric-val" id="ups-load">—</span><span class="metric-unit">%</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="metric-label">Power</div>
+            <div><span class="metric-val" id="ups-power">—</span><span class="metric-unit" id="ups-power-arrow"> W</span></div>
+          </div>
+        </div>
+        <div class="bar-wrap" style="margin-top:0">
+          <div class="bar-fill" id="ups-batt-bar" style="width:0%"></div>
+        </div>
+        <div class="chart-wrap"><canvas id="ups-chart"></canvas></div>
       </div>
     </div>
   </div>
@@ -445,14 +530,14 @@
 // ══════════════════════════════════════════════════════════
 const STATE_COLORS = { GO: '#22c55e', EASE_IN: '#f59e0b', HOLD: '#ef4444' };
 const MAX_POINTS   = 30;   // 30 × 2s = 60 seconds
+const GPU_PWR_MAX  = 500;  // W — RTX 5070 Ti TDP headroom
 
 function el(id) { return document.getElementById(id); }
 
 function setBar(barEl, pct, warnThresh = 70, critThresh = 85) {
-  const clamped = Math.min(Math.max(pct, 0), 100);
-  barEl.style.width = clamped + '%';
+  barEl.style.width = Math.min(Math.max(pct, 0), 100) + '%';
   barEl.classList.remove('warn', 'crit');
-  if (pct >= critThresh) barEl.classList.add('crit');
+  if      (pct >= critThresh) barEl.classList.add('crit');
   else if (pct >= warnThresh) barEl.classList.add('warn');
 }
 
@@ -460,6 +545,13 @@ function headroomColor(val) {
   if (val < 0)  return '#ef4444';
   if (val < 10) return '#f59e0b';
   return '#22c55e';
+}
+
+function gpuPowerColor(w) {
+  if (w == null || w < 30)  return 'var(--muted)';
+  if (w < 100)  return 'var(--text)';
+  if (w < 250)  return 'var(--ease-in)';
+  return 'var(--hold)';
 }
 
 // ══════════════════════════════════════════════════════════
@@ -475,16 +567,12 @@ function updateFavicon(state) {
   ctx.fillStyle = colors[state] ?? '#94a3b8';
   ctx.fill();
   let link = document.querySelector("link[rel~='icon']");
-  if (!link) {
-    link = document.createElement('link');
-    link.rel = 'icon';
-    document.head.appendChild(link);
-  }
+  if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
   link.href = canvas.toDataURL();
 }
 
 // ══════════════════════════════════════════════════════════
-// Dashboard toggle
+// Dashboard toggle & collapsible panels
 // ══════════════════════════════════════════════════════════
 let dashboardVisible = true;
 function toggleDashboard() {
@@ -492,10 +580,16 @@ function toggleDashboard() {
   el('dashboard').style.display = dashboardVisible ? '' : 'none';
 }
 
+function togglePanel(bodyId, toggleEl) {
+  const body = el(bodyId);
+  const collapsed = body.classList.toggle('hidden');
+  toggleEl.classList.toggle('collapsed', collapsed);
+}
+
 // ══════════════════════════════════════════════════════════
-// Sparkline charts
+// Charts
 // ══════════════════════════════════════════════════════════
-function makeChart(canvasId, color) {
+function makeChart(canvasId, color, yMax = 100) {
   const ctx = document.getElementById(canvasId).getContext('2d');
   return new Chart(ctx, {
     type: 'line',
@@ -504,7 +598,7 @@ function makeChart(canvasId, color) {
       datasets: [{
         data: [],
         borderColor: color,
-        backgroundColor: color + '22',
+        backgroundColor: color + '18',
         borderWidth: 1.5,
         tension: 0.3,
         pointRadius: 0,
@@ -518,7 +612,7 @@ function makeChart(canvasId, color) {
       plugins: { legend: { display: false } },
       scales: {
         x: { display: false },
-        y: { display: false, min: 0, max: 100 }
+        y: { display: false, min: 0, max: yMax }
       }
     }
   });
@@ -531,11 +625,12 @@ function pushPoint(chart, value) {
   chart.update('none');
 }
 
-const ramChart = makeChart('ram-chart', '#22c55e');
-const upsChart = makeChart('ups-chart', '#3b82f6');
+const ramChart      = makeChart('ram-chart',       '#22c55e');
+const gpuPowerChart = makeChart('gpu-power-chart', '#f59e0b', GPU_PWR_MAX);
+const upsChart      = makeChart('ups-chart',       '#3b82f6', 1000);
 
 // ══════════════════════════════════════════════════════════
-// CPU cores rendering
+// CPU cores
 // ══════════════════════════════════════════════════════════
 let coreBarEls = [];
 function ensureCores(count) {
@@ -546,11 +641,7 @@ function ensureCores(count) {
   for (let i = 0; i < count; i++) {
     const wrap = document.createElement('div');
     wrap.className = 'core-bar';
-    wrap.innerHTML = `
-      <div class="core-bar-track">
-        <div class="core-bar-fill" style="height:0%"></div>
-      </div>
-      <div class="core-label">${i}</div>`;
+    wrap.innerHTML = `<div class="core-bar-track"><div class="core-bar-fill" style="height:0%"></div></div><div class="core-label">${i}</div>`;
     container.appendChild(wrap);
     coreBarEls.push(wrap.querySelector('.core-bar-fill'));
   }
@@ -561,119 +652,29 @@ function ensureCores(count) {
 // ══════════════════════════════════════════════════════════
 const handlers = {
 
-  ram_monitor(d) {
-    el('ram-used').textContent  = d.ram_used_gb ?? '—';
-    el('ram-total').textContent = d.ram_total_gb ?? '—';
-    el('ram-pct').textContent   = d.ram_pct ?? '—';
-    el('s-ram').textContent     = (d.ram_pct ?? '—') + '%';
-    setBar(el('ram-bar'), d.ram_pct ?? 0, 70, 85);
-    pushPoint(ramChart, d.ram_pct ?? 0);
-
-    // Swap
-    const z = d.swap?.zram ?? {};
-    const k = d.swap?.disk ?? {};
-    el('swap-zram-used').textContent  = z.used_gb  ?? '0';
-    el('swap-zram-total').textContent = z.total_gb ?? '0';
-    el('swap-zram-pct').textContent   = z.pct      ?? '0';
-    el('swap-zram-vel').textContent   = z.velocity_mbps ?? '0';
-    el('swap-zram-ratio').textContent = z.compression_ratio != null ? z.compression_ratio + 'x' : 'n/a';
-    el('swap-disk-used').textContent  = k.used_gb  ?? '0';
-    el('swap-disk-total').textContent = k.total_gb ?? '0';
-    el('swap-disk-pct').textContent   = k.pct      ?? '0';
-    el('swap-disk-vel').textContent   = k.velocity_mbps ?? '0';
-
-    // Processes
-    const tbody = el('proc-tbody');
-    tbody.innerHTML = '';
-    for (const p of (d.top_processes ?? [])) {
-      const tr = document.createElement('tr');
-      const name = p.label ?? p.name;
-      const note = p.renderer_count != null ? `~${p.renderer_count} tabs` : '';
-      const risk = p.earlyoom_risk ? '<span class="risk-flag">⚠ earlyoom</span>' : '';
-      tr.innerHTML = `<td>${name}${risk}</td><td>${p.rss_mb}</td><td>${note}</td>`;
-      tbody.appendChild(tr);
-    }
-  },
-
-  cpu_monitor(d) {
-    el('cpu-agg').textContent = d.aggregate_pct ?? '—';
-    el('s-cpu').textContent   = (d.aggregate_pct ?? '—') + '%';
-    const la = d.load_avg ?? {};
-    el('cpu-l1').textContent  = la['1m']  ?? '—';
-    el('cpu-l5').textContent  = la['5m']  ?? '—';
-    el('cpu-l15').textContent = la['15m'] ?? '—';
-
-    const cores = d.per_core_pct ?? [];
-    ensureCores(cores.length);
-    cores.forEach((v, i) => {
-      if (coreBarEls[i]) coreBarEls[i].style.height = v + '%';
-    });
-  },
-
   gpu_monitor(d) {
     if (d.error) {
-      el('gpu-util').textContent           = 'ERR';
-      el('s-gpu').textContent              = '—';
-      el('s-vram').textContent             = '—';
-      el('s-gpu-power').textContent        = '—';
+      el('gpu-power-val').textContent = 'ERR';
+      el('s-gpu').textContent         = '—';
+      el('s-vram').textContent        = '—';
+      el('s-gpu-power').textContent   = '—';
       return;
     }
-    el('gpu-util').textContent      = d.util_pct      ?? '—';
-    el('gpu-vram-used').textContent = d.vram_used_gb  ?? '—';
-    el('gpu-vram-total').textContent= d.vram_total_gb ?? '—';
-    el('gpu-vram-pct').textContent  = d.vram_pct      ?? '—';
-    el('gpu-temp').textContent      = d.temp_c        ?? '—';
-    el('gpu-power').textContent     = d.power_w       ?? '—';
-    el('s-gpu').textContent         = (d.util_pct  ?? '—') + '%';
-    el('s-vram').textContent        = (d.vram_pct  ?? '—') + '%';
-    el('s-gpu-power').textContent   = d.power_w       ?? '—';
-    setBar(el('gpu-util-bar'),  d.util_pct  ?? 0, 80, 95);
-    setBar(el('gpu-vram-bar'),  d.vram_pct  ?? 0, 75, 90);
-  },
-
-  ups_monitor(d) {
-    if (!d.ups_available) {
-      el('ups-unavailable').style.display = '';
-      el('ups-data').style.display = 'none';
-      el('s-ups-wrap').style.display = 'none';
-      return;
-    }
-    el('ups-unavailable').style.display = 'none';
-    el('ups-data').style.display = '';
-    el('s-ups-wrap').style.display = '';
-
-    const badge = el('ups-status-badge');
-    if (d.on_battery) {
-      badge.textContent = 'ON BATTERY';
-      badge.className = 'ups-status on-battery';
-      el('s-ups').textContent = '⚡ ON BATTERY';
-      el('s-ups').style.color = '#ef4444';
-    } else if (d.low_battery) {
-      badge.textContent = 'LOW BATTERY';
-      badge.className = 'ups-status low-battery';
-    } else {
-      badge.textContent = 'ONLINE';
-      badge.className = 'ups-status';
-    }
-
-    const arrow = d.power_climbing ? ' ▲' : '';
-    el('ups-batt').textContent    = d.battery_charge_pct ?? '—';
-    el('ups-runtime').textContent = d.battery_runtime_m  ?? '—';
-    el('ups-load').textContent    = d.ups_load_pct       ?? '—';
-    el('ups-power').textContent   = d.ups_realpower_w    ?? '—';
-    el('ups-power-arrow').textContent = ' W' + arrow;
-    el('ups-voltage').textContent = d.input_voltage      ?? '—';
-    setBar(el('ups-batt-bar'), d.battery_charge_pct ?? 0, 50, 30);
-
-    const stripPower = d.ups_realpower_w != null
-      ? d.ups_realpower_w + 'W' + arrow
-      : '—';
-    el('s-ups').textContent   = stripPower;
-    el('s-ups').style.color   = d.on_battery ? '#ef4444' : '';
-
-    // UPS wattage is an absolute value so use a 0-1000W scale for chart
-    const wPct = d.ups_realpower_w != null ? Math.min(d.ups_realpower_w / 1000 * 100, 100) : 0;
-    pushPoint(upsChart, wPct);
+    const pw = d.power_w ?? null;
+    el('gpu-power-val').textContent  = pw ?? '—';
+    el('gpu-power-val').style.color  = gpuPowerColor(pw);
+    el('gpu-power-unit').style.color = gpuPowerColor(pw);
+    el('gpu-util').textContent       = d.util_pct      ?? '—';
+    el('gpu-temp').textContent       = d.temp_c        ?? '—';
+    el('gpu-vram-used').textContent  = d.vram_used_gb  ?? '—';
+    el('gpu-vram-total').textContent = d.vram_total_gb ?? '—';
+    el('gpu-vram-pct').textContent   = d.vram_pct      ?? '—';
+    el('s-gpu').textContent          = (d.util_pct  ?? '—') + '%';
+    el('s-vram').textContent         = (d.vram_pct  ?? '—') + '%';
+    el('s-gpu-power').textContent    = pw ?? '—';
+    setBar(el('gpu-util-bar'),  d.util_pct ?? 0, 80, 95);
+    setBar(el('gpu-vram-bar'),  d.vram_pct ?? 0, 75, 90);
+    pushPoint(gpuPowerChart, pw ?? 0);
   },
 
   ollama_monitor(d) {
@@ -687,63 +688,55 @@ const handlers = {
     el('ollama-data').style.display = '';
 
     const loaded = d.loaded_models ?? [];
-    el('ollama-loaded-count').textContent  = loaded.length;
-    el('ollama-vram').textContent          = d.total_vram_gb ?? '0';
-    el('ollama-total-models').textContent  = d.total_models  ?? '—';
+    el('ollama-vram').textContent         = d.total_vram_gb ?? '0';
+    el('ollama-total-models').textContent = d.total_models  ?? '—';
 
-    // Strip: show first loaded model name (truncated) or count
     if (loaded.length > 0) {
       el('s-ollama-wrap').style.display = '';
       const firstName = loaded[0].name.replace(/:latest$/, '');
-      el('s-ollama').textContent = loaded.length === 1
-        ? firstName
-        : `${loaded.length} models`;
+      el('s-ollama').textContent = loaded.length === 1 ? firstName : `${loaded.length} models`;
     } else {
       el('s-ollama-wrap').style.display = 'none';
     }
 
-    // Model table
-    const tbody = el('ollama-tbody');
-    tbody.innerHTML = '';
+    const container = el('ollama-models');
+    container.innerHTML = '';
     for (const m of loaded) {
-      const tr = document.createElement('tr');
       const expires = m.expires_in_s == null
-        ? '<span style="color:var(--muted)">keepalive</span>'
+        ? '<span class="model-keepalive">● keepalive</span>'
         : m.expires_in_s > 3600
-          ? `${Math.round(m.expires_in_s / 60)}m`
-          : `${m.expires_in_s}s`;
-      const ctx = m.context_length != null ? m.context_length.toLocaleString() : '—';
-      tr.innerHTML = `
-        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;font-weight:600">${m.name}</td>
-        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;color:var(--muted)">${m.params}</td>
-        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;color:var(--muted)">${m.quantization}</td>
-        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;text-align:right">${m.size_vram_gb} GB</td>
-        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;text-align:right;color:var(--muted)">${ctx}</td>
-        <td style="padding:3px 6px;border-bottom:1px solid #1e293b;text-align:right;color:var(--muted)">${expires}</td>`;
-      tbody.appendChild(tr);
+          ? `unloads in ${Math.round(m.expires_in_s / 60)}m`
+          : `unloads in ${m.expires_in_s}s`;
+      const ctx = m.context_length != null ? m.context_length.toLocaleString() + ' ctx' : '';
+      const card = document.createElement('div');
+      card.className = 'model-card';
+      card.innerHTML = `
+        <div class="model-name">${m.name.replace(/:latest$/, '')}</div>
+        <div class="model-meta">
+          <span>${m.params}</span>
+          <span>${m.quantization}</span>
+          <span>${m.size_vram_gb} GB VRAM</span>
+          ${ctx ? `<span>${ctx}</span>` : ''}
+        </div>
+        <div style="margin-top:4px;font-size:11px">${expires}</div>`;
+      container.appendChild(card);
     }
   },
 
   demo_readiness(d) {
-    const state  = d.state  ?? 'GO';
-    const color  = STATE_COLORS[state] ?? '#94a3b8';
+    const state = d.state ?? 'GO';
+    const color = STATE_COLORS[state] ?? '#94a3b8';
 
-    // Strip
-    el('strip-dot').style.background = color;
-    el('strip-state-text').textContent = state;
-    el('strip-state-text').style.color = color;
+    el('strip-dot').style.background    = color;
+    el('strip-state-text').textContent  = state;
+    el('strip-state-text').style.color  = color;
+    el('strip-extras').innerHTML        = '';
 
-    // Strip extras
-    const extras = el('strip-extras');
-    extras.innerHTML = '';
-
-    // Demo panel
     const badge = el('dr-state-badge');
     badge.textContent = state;
     badge.style.color = color;
     el('dr-reason').textContent = d.reason ?? '';
 
-    // Overrides list
     const ov = el('dr-overrides');
     ov.innerHTML = '';
     for (const msg of (d.overrides ?? [])) {
@@ -753,15 +746,13 @@ const handlers = {
       ov.appendChild(div);
     }
 
-    // Headroom bars
     const h = d.headroom ?? {};
     function setHeadroom(barId, valId, val) {
       const pct = Math.min(Math.max(val ?? 0, 0), 100);
-      const fill = el(barId);
-      fill.style.width = pct + '%';
-      fill.style.background = headroomColor(val ?? 0);
-      el(valId).textContent = (val != null ? val.toFixed(1) : '—') + '%';
-      el(valId).style.color = headroomColor(val ?? 0);
+      el(barId).style.width      = pct + '%';
+      el(barId).style.background = headroomColor(val ?? 0);
+      el(valId).textContent      = (val != null ? val.toFixed(1) : '—') + '%';
+      el(valId).style.color      = headroomColor(val ?? 0);
     }
     setHeadroom('hr-ram-bar',  'hr-ram-val',  h.ram);
     setHeadroom('hr-cpu-bar',  'hr-cpu-val',  h.cpu);
@@ -769,21 +760,96 @@ const handlers = {
 
     updateFavicon(state);
   },
+
+  ram_monitor(d) {
+    el('ram-used').textContent = d.ram_used_gb ?? '—';
+    el('ram-free').textContent = d.ram_free_gb ?? '—';
+    el('ram-pct').textContent  = d.ram_pct     ?? '—';
+    el('s-ram').textContent    = (d.ram_pct ?? '—') + '%';
+    setBar(el('ram-bar'), d.ram_pct ?? 0, 70, 85);
+    pushPoint(ramChart, d.ram_pct ?? 0);
+
+    const z = d.swap?.zram ?? {};
+    const k = d.swap?.disk ?? {};
+    el('swap-zram-used').textContent  = z.used_gb        ?? '0';
+    el('swap-zram-total').textContent = z.total_gb       ?? '0';
+    el('swap-zram-pct').textContent   = z.pct            ?? '0';
+    el('swap-zram-vel').textContent   = z.velocity_mbps  ?? '0';
+    el('swap-zram-ratio').textContent = z.compression_ratio != null ? z.compression_ratio + 'x' : 'n/a';
+    el('swap-disk-used').textContent  = k.used_gb        ?? '0';
+    el('swap-disk-total').textContent = k.total_gb       ?? '0';
+    el('swap-disk-pct').textContent   = k.pct            ?? '0';
+    el('swap-disk-vel').textContent   = k.velocity_mbps  ?? '0';
+
+    const tbody = el('proc-tbody');
+    tbody.innerHTML = '';
+    for (const p of (d.top_processes ?? [])) {
+      const tr = document.createElement('tr');
+      const name = p.label ?? p.name;
+      const note = p.renderer_count != null ? `~${p.renderer_count} tabs` : '';
+      const risk = p.earlyoom_risk ? '<span class="risk-flag">⚠</span>' : '';
+      tr.innerHTML = `<td>${name}${risk}</td><td>${p.rss_mb}</td><td>${note}</td>`;
+      tbody.appendChild(tr);
+    }
+  },
+
+  cpu_monitor(d) {
+    el('cpu-agg').textContent = d.aggregate_pct ?? '—';
+    el('s-cpu').textContent   = (d.aggregate_pct ?? '—') + '%';
+    const la = d.load_avg ?? {};
+    el('cpu-l1').textContent  = la['1m']  ?? '—';
+    el('cpu-l5').textContent  = la['5m']  ?? '—';
+    el('cpu-l15').textContent = la['15m'] ?? '—';
+    const cores = d.per_core_pct ?? [];
+    ensureCores(cores.length);
+    cores.forEach((v, i) => { if (coreBarEls[i]) coreBarEls[i].style.height = v + '%'; });
+  },
+
+  ups_monitor(d) {
+    if (!d.ups_available) {
+      el('ups-unavailable').style.display = '';
+      el('ups-data').style.display        = 'none';
+      el('s-ups-wrap').style.display      = 'none';
+      return;
+    }
+    el('ups-unavailable').style.display = 'none';
+    el('ups-data').style.display        = '';
+    el('s-ups-wrap').style.display      = '';
+
+    const badge = el('ups-status-badge');
+    if (d.on_battery) {
+      badge.textContent = 'ON BATTERY'; badge.className = 'ups-status on-battery';
+      el('s-ups').textContent = '⚡ ON BATTERY'; el('s-ups').style.color = '#ef4444';
+    } else if (d.low_battery) {
+      badge.textContent = 'LOW BATTERY'; badge.className = 'ups-status low-battery';
+    } else {
+      badge.textContent = 'ONLINE'; badge.className = 'ups-status';
+    }
+
+    const arrow = d.power_climbing ? ' ▲' : '';
+    el('ups-batt').textContent         = d.battery_charge_pct ?? '—';
+    el('ups-runtime').textContent      = d.battery_runtime_m  ?? '—';
+    el('ups-load').textContent         = d.ups_load_pct       ?? '—';
+    el('ups-power').textContent        = d.ups_realpower_w    ?? '—';
+    el('ups-power-arrow').textContent  = ' W' + arrow;
+    setBar(el('ups-batt-bar'), d.battery_charge_pct ?? 0, 50, 30);
+
+    el('s-ups').textContent  = d.ups_realpower_w != null ? d.ups_realpower_w + 'W' + arrow : '—';
+    el('s-ups').style.color  = d.on_battery ? '#ef4444' : '';
+
+    pushPoint(upsChart, d.ups_realpower_w ?? 0);
+  },
 };
 
 // ══════════════════════════════════════════════════════════
-// Conditional strip badges (driven by ram_monitor + demo_readiness)
+// Strip extras (swap / zram / earlyoom badges)
 // ══════════════════════════════════════════════════════════
 const _latest = {};
 
 function updateStripExtras() {
   const extras = el('strip-extras');
   extras.innerHTML = '';
-
-  const ram = _latest.ram_monitor ?? {};
-  const ups = _latest.ups_monitor ?? {};
-  const dr  = _latest.demo_readiness ?? {};
-
+  const ram  = _latest.ram_monitor ?? {};
   const disk = ram.swap?.disk ?? {};
   const zram = ram.swap?.zram ?? {};
 
@@ -819,12 +885,9 @@ function dispatch(msg) {
 
 function connect() {
   const ws = new WebSocket(`ws://${location.host}/ws`);
-  ws.onmessage = (e) => {
-    try { dispatch(JSON.parse(e.data)); }
-    catch (err) { console.error('WS parse error', err); }
-  };
-  ws.onclose = () => setTimeout(connect, 2000);
-  ws.onerror = (e) => console.warn('WS error', e);
+  ws.onmessage = (e) => { try { dispatch(JSON.parse(e.data)); } catch(err) { console.error(err); } };
+  ws.onclose   = () => setTimeout(connect, 2000);
+  ws.onerror   = (e) => console.warn('WS error', e);
 }
 
 connect();
