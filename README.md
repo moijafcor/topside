@@ -2,7 +2,7 @@
 
 TOPSIDE is a local-first, plugin-driven system monitor built for workstations running inference workloads, live demos, or anything where a RAM ambush or power event is not an option.
 
-A FastAPI backend pushes live metrics over WebSocket to a zero-build-step HTML dashboard. A plugin contract means new collectors are a single file drop. A Demo Readiness strip — pinned, always visible, peripheral-friendly — gives you a one-glance **GO / EASE_IN / HOLD** signal before you fire the next drill.
+A FastAPI backend pushes live metrics over WebSocket to a zero-build-step HTML dashboard. A plugin contract means new collectors are a single file drop. A Headroom strip — pinned, always visible, peripheral-friendly — gives you a one-glance **GO / EASE_IN / HOLD** signal before you fire the next drill.
 
 No cloud. No agents. No npm. Runs anywhere Python 3.12 runs.
 
@@ -17,13 +17,13 @@ No cloud. No agents. No npm. Runs anywhere Python 3.12 runs.
 | `gpu_monitor` | GPU utilization %, VRAM used / total / %, temperature °C, power draw W — via pynvml, no nvidia-smi subprocess | 2 s |
 | `ups_monitor` | Load %, real power W, input voltage, battery charge %, runtime estimate, on-battery / low-battery flags, power-climbing trend — via apcupsd NIS (TCP 3551, stdlib sockets), graceful degraded mode when unavailable | 2 s |
 | `ollama_monitor` | Loaded models with VRAM footprint, parameters, quantization, context length, and keepalive / unload timer — via Ollama REST API, no subprocess | 5 s |
-| `demo_readiness` | Composite **GO / EASE_IN / HOLD** state with primary reason, full override list, and per-resource headroom projections | 2 s |
+| `demo_readiness` | Composite **GO / EASE_IN / HOLD** headroom state with primary reason, full override list, and per-resource headroom projections | 2 s |
 
 ---
 
-## Demo Readiness
+## Headroom
 
-The `demo_readiness` meta-plugin reads the latest output from all other plugins and emits a single composite signal every 2 s.
+The `demo_readiness` meta-plugin reads the latest output from all other plugins and emits a single composite headroom signal every 2 s.
 
 ### State resolution (in priority order)
 
@@ -114,7 +114,7 @@ Alerts are edge-triggered: each threshold fires once on crossing and resets only
 - **Desktop** — `notify-send`
 - **Ops pipeline** — shell call to `notifications.opswire_script` (e.g. `~/ops/infra_notify.sh`)
 
-Demo Readiness state transitions also trigger notifications:
+Headroom state transitions also trigger notifications:
 
 | Transition | Severity |
 | --- | --- |
