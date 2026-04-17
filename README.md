@@ -28,6 +28,7 @@ No cloud. No agents. No npm. Runs anywhere Python 3.12 runs.
 | `gpu_monitor` | GPU utilization %, VRAM used / total / %, temperature °C, power draw W — via pynvml, no nvidia-smi subprocess | 2 s |
 | `ups_monitor` | Load %, real power W, input voltage, battery charge %, runtime estimate, on-battery / low-battery flags, power-climbing trend — via apcupsd NIS (TCP 3551, stdlib sockets), graceful degraded mode when unavailable | 2 s |
 | `ollama_monitor` | Loaded models with VRAM footprint, parameters, quantization, context length, and keepalive / unload timer — via Ollama REST API, no subprocess | 5 s |
+| `ollama_tokens` | Token throughput: `completion_tokens_per_s`, `prompt_tokens_per_s`, cumulative totals, and per-model breakdown — via Ollama's Prometheus `/metrics` endpoint (requires Ollama 0.5+, `OLLAMA_METRICS=1`); degrades gracefully when unavailable | 5 s |
 | `disk_monitor` | Local and network volume usage (ext4, xfs, btrfs, CIFS, NFS, …) with per-volume bar and root % threshold; NVMe / SATA block I/O read + write MB/s and IOPS via `/proc/diskstats` | 5 s |
 | `network_monitor` | Per-interface RX / TX MB/s, packet rate, and cumulative error counts via `/proc/net/dev`; loopback and virtual interfaces filtered | 2 s |
 | `headroom` | Composite **GO / EASE_IN / HOLD** state with primary reason, full override list, and per-resource headroom projections | 2 s |
@@ -76,7 +77,7 @@ A fixed 40 px bar pinned to the top of every page. Never scrolls away.
 [ ● GO ]   RAM 41%   CPU 12%   GPU 18%   VRAM 38%   PWR 14W   UPS 340W   LLM qwen2.5:14b
 ```
 
-Conditional annotations appear inline: `SWAP ▲ 340 MB/s` in red, `zram ▲` in amber, `TABS ⚠` in amber, `⚡ ON BATTERY` replacing the UPS metric. The `LLM` token shows the active model name (or a count when multiple models are loaded) and disappears when nothing is loaded. The browser tab favicon updates to a matching colored circle on every state change — readable as a pinned tab.
+Conditional annotations appear inline: `SWAP ▲ 340 MB/s` in red, `zram ▲` in amber, `TABS ⚠` in amber, `41 tok/s` in amber when Ollama is actively generating, `⚡ ON BATTERY` replacing the UPS metric. The `LLM` token shows the active model name (or a count when multiple models are loaded) and disappears when nothing is loaded. The browser tab favicon updates to a matching colored circle on every state change — readable as a pinned tab.
 
 ---
 
@@ -254,6 +255,7 @@ topside/
 │   ├── gpu_monitor.py
 │   ├── ups_monitor.py
 │   ├── ollama_monitor.py     # Ollama REST API — loaded models, VRAM, keepalive state
+│   ├── ollama_tokens.py      # Ollama /metrics — token throughput (requires Ollama 0.5+)
 │   ├── disk_monitor.py       # Volume usage + block I/O rates via /proc/diskstats
 │   ├── network_monitor.py    # Per-interface RX/TX rates via /proc/net/dev
 │   └── headroom.py           # Meta-plugin: reads plugin cache, emits composite state
@@ -350,6 +352,8 @@ notifications:
 
 ollama:
   base_url: "http://localhost:11434"
+  tokens:
+    warn_completion_per_s: 80   # alert when throughput exceeds this (GPU saturation signal)
 
 plugins:
   ram_monitor:     true
@@ -357,6 +361,7 @@ plugins:
   gpu_monitor:     true      # requires NVIDIA GPU with nvidia-ml-py
   ups_monitor:     true      # requires apcupsd on nis_host
   ollama_monitor:  true      # requires Ollama running on base_url
+  ollama_tokens:   true      # requires Ollama 0.5+ with OLLAMA_METRICS=1
   disk_monitor:    true
   network_monitor: true
   headroom:        true
@@ -370,6 +375,7 @@ plugins:
 - Ubuntu 24.04 (tested on ARMOURY: Ryzen 7 7800X3D, RTX 5070 Ti, 32 GB DDR5)
 - `apcupsd` on the host with the UPS physically attached; `ups_monitor` connects to its NIS (TCP 3551) — configure `ups.nis_host` in `config.yaml` if the UPS is on a remote machine
 - GPU monitoring requires an NVIDIA card; `ups_monitor` degrades gracefully if apcupsd NIS is unreachable; `ollama_monitor` degrades gracefully if Ollama is not running
+- `ollama_tokens` requires Ollama 0.5+ with `OLLAMA_METRICS=1` set in the service environment; on Linux via systemd, add a drop-in: `Environment=OLLAMA_METRICS=1` under `[Service]` in `/etc/systemd/system/ollama.service.d/metrics.conf`, then `systemctl daemon-reload && systemctl restart ollama`
 
 ---
 
@@ -408,6 +414,7 @@ The installer:
 | --- | ------- | ----- |
 | `ups.nis_host` | `"localhost"` | Host running apcupsd; change if UPS is on another machine |
 | `ollama.base_url` | `"http://localhost:11434"` | Ollama endpoint if not on localhost |
+| `ollama.tokens.warn_completion_per_s` | `80` | Threshold above which `ollama_tokens` fires a warn alert |
 | `plugins.*` | all `true` | Disable collectors you don't have hardware for |
 
 ---

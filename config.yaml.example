@@ -40,6 +40,8 @@ notifications:
 
 ollama:
   base_url: "http://localhost:11434"
+  tokens:
+    warn_completion_per_s: 80   # alert when throughput exceeds this (GPU saturation signal)
 
 plugins:
   ram_monitor: true
@@ -47,6 +49,7 @@ plugins:
   gpu_monitor: true         # requires NVIDIA GPU with nvidia-ml-py
   ups_monitor: true         # requires apcupsd on nis_host
   ollama_monitor: true      # requires Ollama running on base_url
+  ollama_tokens: true       # requires Ollama 0.5+ (/metrics endpoint)
   disk_monitor: true
   network_monitor: true
   headroom: true

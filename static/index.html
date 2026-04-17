@@ -547,6 +547,41 @@
     </div>
   </div>
 
+  <!-- ④b Ollama Throughput — collapsible -->
+  <div class="panel">
+    <div class="panel-toggle" onclick="togglePanel('tok-body', this)">
+      <div class="panel-title" style="margin-bottom:0">Ollama Throughput</div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="tok-body" class="panel-body">
+      <div id="tok-unavailable" style="color:var(--muted);font-size:12px">
+        Ollama /metrics not yet available in this build. Waiting for Ollama 0.5+ — <code>OLLAMA_METRICS=1</code> is already configured and will activate automatically on upgrade.
+      </div>
+      <div id="tok-data" style="display:none">
+        <div class="chart-wrap"><canvas id="tok-chart"></canvas></div>
+        <div id="tok-stat-row" style="margin-top:6px;font-size:12px;color:var(--muted)">
+          <span id="tok-comp" style="color:var(--text);font-weight:600">—</span> tok/s completion
+          · <span id="tok-prompt" style="color:var(--text);font-weight:600">—</span> tok/s prompt
+          · <span id="tok-reqs">—</span> total requests
+        </div>
+        <div id="tok-model-table-wrap" style="display:none;margin-top:8px">
+          <div class="panel-title" style="margin-bottom:5px">Per Model</div>
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <thead>
+              <tr>
+                <th style="text-align:left;color:var(--muted);padding:2px 6px 4px 0;font-weight:500">Model</th>
+                <th style="text-align:right;color:var(--muted);padding:2px 6px 4px 0;font-weight:500">Comp tok/s</th>
+                <th style="text-align:right;color:var(--muted);padding:2px 6px 4px 0;font-weight:500">Prompt tok/s</th>
+                <th style="text-align:right;color:var(--muted);padding:2px 0 4px;font-weight:500">Requests</th>
+              </tr>
+            </thead>
+            <tbody id="tok-model-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ④ Headroom -->
   <div class="panel">
     <div class="panel-title">Headroom</div>
@@ -799,6 +834,7 @@ const ramChart      = makeChart('ram-chart',       '#22c55e');
 const gpuPowerChart = makeChart('gpu-power-chart', '#f59e0b', GPU_PWR_MAX);
 const upsChart      = makeChart('ups-chart',       '#3b82f6', 1000);
 const diskIoChart   = makeChart2('disk-io-chart',  '#22c55e', '#f59e0b', 500);
+const tokChart      = makeChart2('tok-chart',      '#a78bfa', '#64748b', 120);
 
 // Network charts: created lazily per interface, keyed by iface name
 const _netCharts = {};
@@ -849,6 +885,43 @@ const handlers = {
     setBar(el('gpu-util-bar'),  d.util_pct ?? 0, 80, 95);
     setBar(el('gpu-vram-bar'),  d.vram_pct ?? 0, 75, 90);
     pushPoint(gpuPowerChart, pw ?? 0);
+  },
+
+  ollama_tokens(d) {
+    if (!d.metrics_available) {
+      el('tok-unavailable').style.display = '';
+      el('tok-data').style.display        = 'none';
+      return;
+    }
+    el('tok-unavailable').style.display = 'none';
+    el('tok-data').style.display        = '';
+
+    const comp   = d.completion_tokens_per_s ?? 0;
+    const prompt = d.prompt_tokens_per_s     ?? 0;
+    el('tok-comp').textContent   = comp.toFixed(1);
+    el('tok-prompt').textContent = prompt.toFixed(1);
+    el('tok-reqs').textContent   = d.requests_total ?? 0;
+
+    pushPoint2(tokChart, comp, prompt);
+
+    const models    = d.models ?? [];
+    const tableWrap = el('tok-model-table-wrap');
+    if (models.length > 1) {
+      tableWrap.style.display = '';
+      const tbody = el('tok-model-tbody');
+      tbody.innerHTML = '';
+      for (const m of models) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="color:var(--muted);padding:2px 6px 2px 0">${m.name.replace(/:latest$/, '')}</td>
+          <td style="text-align:right;padding:2px 6px 2px 0;color:var(--text);font-weight:600">${(m.completion_tokens_per_s ?? 0).toFixed(1)}</td>
+          <td style="text-align:right;padding:2px 6px 2px 0">${(m.prompt_tokens_per_s ?? 0).toFixed(1)}</td>
+          <td style="text-align:right;padding:2px 0">${m.requests_total ?? 0}</td>`;
+        tbody.appendChild(tr);
+      }
+    } else {
+      tableWrap.style.display = 'none';
+    }
   },
 
   ollama_monitor(d) {
@@ -1149,6 +1222,13 @@ function updateStripExtras() {
     const b = document.createElement('span');
     b.className = 'strip-badge badge-ease';
     b.textContent = 'TABS ⚠';
+    extras.appendChild(b);
+  }
+  const tok = _latest.ollama_tokens ?? {};
+  if (tok.metrics_available && (tok.completion_tokens_per_s ?? 0) > 1) {
+    const b = document.createElement('span');
+    b.className = 'strip-badge badge-ease';
+    b.textContent = `${Math.round(tok.completion_tokens_per_s)} tok/s`;
     extras.appendChild(b);
   }
 }
