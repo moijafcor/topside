@@ -6,6 +6,24 @@ A FastAPI backend pushes live metrics over WebSocket to a zero-build-step HTML d
 
 No cloud. No agents. No npm. Runs anywhere Python 3.12 runs.
 
+## Contents
+
+- [What it monitors](#what-it-monitors)
+- [Headroom](#headroom)
+- [HTTP API](#http-api)
+- [Architecture](#architecture)
+- [Notifications](#notifications)
+- [Configuration](#configuration)
+- [Requirements](#requirements)
+- [Python packages](#python-packages)
+- [Install](#install)
+- [Running](#running) (includes systemd autostart)
+- [Developing from source](#developing-from-source)
+- [Security and network exposure](#security-and-network-exposure)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+- [Constraints](#constraints)
+
 ---
 
 ![TOPSIDE dashboard — above the fold](docs/screenshot-strip.png)
@@ -211,6 +229,16 @@ Plugin names and `data` schemas match the `metrics` keys in `/api`. On connect,
 the server immediately replays the latest cached payload for every active plugin
 before switching to live updates — clients are never blank on first load.
 
+### Interactive API (OpenAPI)
+
+FastAPI exposes automatic schema and docs (same port as the dashboard):
+
+- **`GET /openapi.json`** — OpenAPI 3 schema for tooling and code generation
+- **`GET /docs`** — Swagger UI
+- **`GET /redoc`** — ReDoc
+
+These routes sit alongside the static dashboard mount; they are useful when integrating with `/api` or probing field shapes without reading source.
+
 ---
 
 ### `GET /info` — system identity
@@ -266,7 +294,8 @@ topside/
 │   └── screenshot-full.png   # Full dashboard screenshot
 ├── config.yaml.example       # Versioned config template; copied to prefix on first install
 ├── install.py                # stdlib-only installer — venv, systemd unit, XDG prefix
-└── requirements.txt
+├── requirements.txt
+└── LICENSE                   # GNU Affero General Public License v3
 ```
 
 `config.yaml` is machine-local and gitignored. The installer seeds it from `config.yaml.example` on first install and never overwrites it on subsequent updates.
@@ -284,7 +313,7 @@ class BaseCollector(ABC):
     def thresholds(self) -> list[Threshold]: ...
 ```
 
-The server dynamically loads all files in `plugins/` at startup with no hardcoded imports. Adding a collector = drop a `.py` file in `plugins/`, add its key to `config.yaml`, restart. Nothing else changes.
+The server dynamically loads every `plugins/*.py` file at startup with no hardcoded imports. Files whose basename starts with `_` are skipped (handy for scratch modules). Adding a collector = drop a `.py` file in `plugins/`, add its key to `config.yaml`, restart (or `/reload`). Nothing else changes.
 
 `/reload` (HTTP GET or `SIGHUP`) re-reads `config.yaml` and restarts all plugin tasks — plugin code changes take effect without a full server restart.
 
@@ -376,6 +405,22 @@ plugins:
 - `apcupsd` on the host with the UPS physically attached; `ups_monitor` connects to its NIS (TCP 3551) — configure `ups.nis_host` in `config.yaml` if the UPS is on a remote machine
 - GPU monitoring requires an NVIDIA card; `ups_monitor` degrades gracefully if apcupsd NIS is unreachable; `ollama_monitor` degrades gracefully if Ollama is not running
 - `ollama_tokens` requires Ollama 0.5+ with `OLLAMA_METRICS=1` set in the service environment; on Linux via systemd, add a drop-in: `Environment=OLLAMA_METRICS=1` under `[Service]` in `/etc/systemd/system/ollama.service.d/metrics.conf`, then `systemctl daemon-reload && systemctl restart ollama`
+- **systemd user services** (installer default) are Linux-specific; `SIGHUP` reload is skipped on platforms where the event loop cannot register signal handlers (for example Windows)
+
+---
+
+## Python packages
+
+Declared in `requirements.txt` and installed into the prefix venv by `install.py`:
+
+| Package | Role |
+| --- | --- |
+| `fastapi` | HTTP API, WebSocket endpoint, static file serving |
+| `uvicorn[standard]` | ASGI server |
+| `psutil` | Cross-platform process and system utilities used by collectors |
+| `nvidia-ml-py` | NVIDIA GPU metrics (`gpu_monitor`) |
+| `pyyaml` | `config.yaml` parsing |
+| `websockets` | WebSocket stack used by Starlette/FastAPI |
 
 ---
 
@@ -400,6 +445,8 @@ python3 install.py --update
 python3 install.py --uninstall
 ```
 
+`--update` is a clarity flag: a plain `python3 install.py` run already overwrites synced code, refreshes the venv from `requirements.txt`, and preserves `config.yaml` when it exists. Use whichever reads better in scripts or docs.
+
 The installer:
 
 1. Copies `core/`, `plugins/`, `static/`, and `requirements.txt` into the prefix (always overwrites — safe to re-run as an update).
@@ -407,6 +454,8 @@ The installer:
 3. Seeds `{prefix}/config.yaml` from `config.yaml.example` on first install only. Subsequent runs preserve your config.
 4. Generates `~/.config/systemd/user/topside.service` with the resolved prefix and venv paths.
 5. Reloads systemd and optionally enables/starts the service.
+
+**User systemd without a graphical login:** if you need TOPSIDE to start at boot before anyone logs in, enable lingering for your user once: `loginctl enable-linger "$USER"` (then the user unit behaves like a persistent session).
 
 **Per-machine settings to review in `config.yaml` before starting:**
 
@@ -436,6 +485,68 @@ systemctl --user enable --now topside   # start and enable at login
 systemctl --user restart topside        # restart after config change
 journalctl --user -u topside -f         # follow logs
 ```
+
+---
+
+## Developing from source
+
+Useful when hacking plugins or the dashboard without going through `install.py`.
+
+1. **Config** — from the repository root, copy the example config once:
+
+   ```bash
+   cp config.yaml.example config.yaml
+   ```
+
+2. **Virtualenv and dependencies:**
+
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate   # Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. **Run** — start uvicorn with the **repository root** as the working directory so `config.yaml`, `plugins/`, and `static/` resolve next to `core/`:
+
+   ```bash
+   uvicorn core.server:app --host 0.0.0.0 --port 7700
+   ```
+
+After code edits, restart the process (or hit `GET /reload` / `SIGHUP` on Linux) so plugin modules reload.
+
+---
+
+## Security and network exposure
+
+The default installer and the dev command above bind **`0.0.0.0`**, so the dashboard and **unauthenticated** JSON/WebSocket API are reachable from every interface on that port. There is no built-in auth, TLS, or API token.
+
+For a single-user workstation behind a firewall this is often fine. If the host is reachable from untrusted networks, prefer binding to loopback only, for example:
+
+```bash
+uvicorn core.server:app --host 127.0.0.1 --port 7700
+```
+
+…and adjust the generated systemd `ExecStart` (or your reverse proxy) accordingly.
+
+---
+
+## Troubleshooting
+
+| Symptom | What to try |
+| --- | --- |
+| `gpu_monitor` errors or import failures | Disable `plugins.gpu_monitor` in `config.yaml` on machines without an NVIDIA GPU, or ensure the proprietary driver stack matches `nvidia-ml-py`. |
+| `ups_monitor` shows `ups_available: false` | Confirm `apcupsd` is running and NIS is listening on `ups.nis_host`:`ups.nis_port` (default `localhost:3551`). |
+| `ollama_monitor` empty or `available: false` | Start Ollama or set `ollama.base_url` to the correct host. |
+| `ollama_tokens` always empty or unavailable | Requires Ollama 0.5+ with `OLLAMA_METRICS=1`; see Requirements. |
+| Port already in use | Pass `--port` to `install.py` or change the uvicorn `--port`. |
+| `/reload` does nothing obvious | Check server logs; disabled plugins disappear from the `plugins` list in the JSON response. |
+| Config changes ignored | Ensure you edited the **`config.yaml` next to the running install** (prefix for systemd, repo root for dev), then `/reload` or restart. |
+
+---
+
+## License
+
+TOPSIDE is released under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0). If you modify the server and make it available over a network, AGPL obligations apply — read the license text for details.
 
 ---
 
