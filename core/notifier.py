@@ -41,10 +41,12 @@ class Notifier:
                 urgency = "critical" if t.level == "critical" else "normal"
                 title = f"TOPSIDE — {plugin_name} {t.level.upper()}"
                 body = f"{t.metric_key} = {metric:.1f} (threshold {t.value})"
-                if notif.get("desktop", False):
+                if notif.get("desktop", False) and urgency == "critical":
                     self._dispatch_desktop(title, body, urgency)
                 if notif.get("opswire", False):
-                    sev = "CRITICAL" if t.level == "critical" else notif.get("opswire_severity", "WARN")
+                    sev = "CRITICAL" if t.level == "critical" else notif.get(
+                        "opswire_severity", "WARN"
+                    )
                     self._dispatch_opswire(sev, f"{title}: {body}")
             elif not over and fired:
                 # Hysteresis: reset only when below warn level
@@ -73,7 +75,7 @@ class Notifier:
             body = "Headroom restored to GO"
         else:
             return
-        if notif.get("desktop", False):
+        if notif.get("desktop", False) and urgency == "critical":
             self._dispatch_desktop(title, body, urgency)
         if notif.get("opswire", False):
             self._dispatch_opswire(severity, f"{title}: {body}")
