@@ -151,12 +151,21 @@ class Headroom(BaseCollector):
         return {
             "state":     state,
             "reason":    reason,
-            "overrides": all_overrides,
+            "overrides": [o for o in all_overrides if o != reason],
             "headroom":  headroom,
             "breakdown": {
-                "ram":      {"current": round(ram_pct,  1), "delta": ram_delta,  "projected": round(proj_ram,  1), "threshold": crit_ram},
-                "cpu":      {"current": round(cpu_pct,  1), "delta": cpu_spike,  "projected": round(proj_cpu,  1), "threshold": crit_cpu},
-                "gpu_vram": {"current": round(vram_pct, 1), "delta": vram_delta, "projected": round(proj_vram, 1), "threshold": crit_vram},
+                "ram": {
+                    "current": round(ram_pct, 1), "delta": ram_delta,
+                    "projected": round(proj_ram, 1), "threshold": crit_ram,
+                },
+                "cpu": {
+                    "current": round(cpu_pct, 1), "delta": cpu_spike,
+                    "projected": round(proj_cpu, 1), "threshold": crit_cpu,
+                },
+                "gpu_vram": {
+                    "current": round(vram_pct, 1), "delta": vram_delta,
+                    "projected": round(proj_vram, 1), "threshold": crit_vram,
+                },
             },
         }
 
