@@ -734,7 +734,8 @@ function setBar(barEl, pct, warnThresh = 70, critThresh = 85) {
 
 function headroomColor(val) {
   if (val < 0)  return '#ef4444';
-  if (val < 10) return '#f59e0b';
+  if (val < 5)  return '#f97316';
+  if (val < 15) return '#f59e0b';
   return '#22c55e';
 }
 
@@ -1009,17 +1010,32 @@ const handlers = {
     const bd = d.breakdown ?? {};
     function setHeadroom(barId, valId, detailId, val, brk) {
       const overload = val != null && val < 0;
-      const pct = overload ? 100 : Math.min(val ?? 0, 100);
       const bar = el(barId);
-      bar.style.width = pct + '%';
-      bar.classList.toggle('overload', overload);
-      bar.style.background = overload ? '' : headroomColor(val ?? 0);
+      bar.classList.remove('overload');
+
+      // Bar shows projected load as % of critical threshold so a 0.5 %
+      // margin renders as a nearly-full bar, not a near-invisible sliver.
+      let fillPct, barColor;
+      if (brk && brk.threshold) {
+        const ratio = brk.projected / brk.threshold;
+        fillPct  = Math.min(ratio * 100, 100);
+        barColor = ratio >= 1.0  ? '#ef4444'
+                 : ratio >= 0.95 ? '#f97316'
+                 : ratio >= 0.85 ? '#f59e0b'
+                 :                 '#22c55e';
+      } else {
+        fillPct  = overload ? 100 : Math.min(val ?? 0, 100);
+        barColor = headroomColor(val ?? 0);
+      }
+      bar.style.width      = fillPct + '%';
+      bar.style.background = barColor;
+
       el(valId).textContent = (val != null ? val.toFixed(1) : '—') + '%';
       el(valId).style.color = headroomColor(val ?? 0);
       if (brk && detailId) {
         const det = el(detailId);
         det.textContent = `now ${brk.current}% + ${brk.delta}δ → ${brk.projected}% · crit ${brk.threshold}%`;
-        det.style.color = overload ? 'var(--hold)' : 'var(--muted)';
+        det.style.color = val < 5 ? headroomColor(val) : 'var(--muted)';
       }
     }
     setHeadroom('hr-ram-bar',  'hr-ram-val',  'hr-ram-detail',  h.ram,      bd.ram);
