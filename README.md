@@ -97,6 +97,27 @@ A fixed 40 px bar pinned to the top of every page. Never scrolls away.
 
 Conditional annotations appear inline: `SWAP ▲ 340 MB/s` in red, `zram ▲` in amber, `TABS ⚠` in amber, `41 tok/s` in amber when Ollama is actively generating, `⚡ ON BATTERY` replacing the UPS metric. The `LLM` token shows the active model name (or a count when multiple models are loaded) and disappears when nothing is loaded. The browser tab favicon updates to a matching colored circle on every state change — readable as a pinned tab.
 
+### Headroom metric bars
+
+Below the state badge the dashboard shows a bar for each resource. Each bar has a formula line that makes the projection explicit:
+
+```text
+RAM    [████░░░░░░]   8.0%
+        now 69% + 8δ → 77% · crit 85%
+
+CPU    [██████████]  77.7%
+        now 3% + 15δ → 18% · crit 95%
+
+VRAM   [████████████]  -4.5%    ← solid red, full width
+        now 88.5% + 6δ → 94.5% · crit 90%
+```
+
+- **Green bar** — headroom comfortably positive
+- **Amber bar** — headroom below `drill_cost.headroom_ease_in_pct` (default 5 %)
+- **Solid red bar at 100 % width** — headroom negative; the next drill would breach the critical threshold by the displayed amount. Formula line also turns red.
+
+The bar represents the remaining safety margin, not current utilisation. A resource sitting at 88 % shows a thin (or overloaded) bar even if the threshold chart shows it as yellow.
+
 ---
 
 ## HTTP API
@@ -125,6 +146,7 @@ determine GO / EASE_IN / HOLD without unpacking `metrics`.
 | `headroom.reason` | string | Primary reason for the current state |
 | `headroom.overrides` | array | All active blocking and floor conditions |
 | `headroom.headroom` | object | Projected margin after drill costs: `{ram, cpu, gpu_vram}` in % — negative means the next drill would push past the critical threshold |
+| `headroom.breakdown` | object | Per-resource projection detail: `{current, delta, projected, threshold}` for each of `ram`, `cpu`, `gpu_vram` — same numbers shown in the dashboard formula line |
 | `metrics` | object | Latest payload from every active plugin, keyed by plugin name |
 
 **Example response (arrays abbreviated):**
@@ -142,7 +164,12 @@ determine GO / EASE_IN / HOLD without unpacking `metrics`.
     "state": "GO",
     "reason": "All systems nominal",
     "overrides": [],
-    "headroom": { "ram": 8.0, "cpu": 77.7, "gpu_vram": 8.7 }
+    "headroom": { "ram": 8.0, "cpu": 77.7, "gpu_vram": 8.7 },
+    "breakdown": {
+      "ram":      { "current": 69.0, "delta": 8,  "projected": 77.0, "threshold": 85 },
+      "cpu":      { "current":  2.3, "delta": 15, "projected": 17.3, "threshold": 95 },
+      "gpu_vram": { "current": 75.3, "delta": 6,  "projected": 81.3, "threshold": 90 }
+    }
   },
   "metrics": {
     "cpu_monitor": {
@@ -323,18 +350,20 @@ The server dynamically loads every `plugins/*.py` file at startup with no hardco
 
 Alerts are edge-triggered: each threshold fires once on crossing and resets only after the metric drops below the warn level (hysteresis). Dispatch targets:
 
-- **Desktop** — `notify-send`
-- **Ops pipeline** — shell call to `notifications.opswire_script` (e.g. `~/ops/infra_notify.sh`)
+- **Desktop** — `notify-send`, **critical urgency only** (HOLD state and critical threshold crossings). Warn-level events and EASE_IN transitions are intentionally suppressed to avoid drowning out genuinely urgent alerts.
+- **Ops pipeline** — shell call to `notifications.opswire_script` (e.g. `~/ops/infra_notify.sh`). Receives all severity levels regardless of the desktop filter.
 
-Headroom state transitions also trigger notifications:
+Headroom state transitions that trigger notifications:
 
-| Transition | Severity |
-| --- | --- |
-| GO → EASE_IN | WARN |
-| any → HOLD | CRITICAL |
-| HOLD → GO | INFO (all clear) |
-| Disk swap activated | CRITICAL (independent of demo state) |
-| earlyoom browser threshold crossed | WARN |
+| Transition | Severity | Desktop |
+| --- | --- | --- |
+| any → HOLD | CRITICAL | yes |
+| GO → EASE_IN | WARN | no |
+| HOLD → GO | INFO (all clear) | no |
+| Disk swap activated | CRITICAL | yes |
+| earlyoom browser threshold crossed | WARN | no |
+
+Only `CRITICAL` events reach the desktop. Opswire receives every row in the table above.
 
 ---
 
