@@ -140,6 +140,14 @@
   }
   .bar-fill.warn { background: var(--ease-in); }
   .bar-fill.crit { background: var(--hold); }
+  @keyframes headroom-overload {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.45; }
+  }
+  .bar-fill.overload {
+    background: #ef4444;
+    animation: headroom-overload 0.9s ease-in-out infinite;
+  }
 
   /* Chart containers */
   .chart-wrap { position: relative; height: 56px; margin-top: 8px; }
@@ -995,11 +1003,15 @@ const handlers = {
 
     const h = d.headroom ?? {};
     function setHeadroom(barId, valId, val) {
-      const pct = Math.min(Math.max(val ?? 0, 0), 100);
-      el(barId).style.width      = pct + '%';
-      el(barId).style.background = headroomColor(val ?? 0);
-      el(valId).textContent      = (val != null ? val.toFixed(1) : '—') + '%';
-      el(valId).style.color      = headroomColor(val ?? 0);
+      const overload = val != null && val < 0;
+      const pct = overload ? 100 : Math.min(val ?? 0, 100);
+      const bar = el(barId);
+      bar.style.width = pct + '%';
+      bar.classList.toggle('overload', overload);
+      if (!overload) bar.style.background = headroomColor(val ?? 0);
+      else bar.style.background = '';
+      el(valId).textContent = (val != null ? val.toFixed(1) : '—') + '%';
+      el(valId).style.color = headroomColor(val ?? 0);
     }
     setHeadroom('hr-ram-bar',  'hr-ram-val',  h.ram);
     setHeadroom('hr-cpu-bar',  'hr-cpu-val',  h.cpu);
