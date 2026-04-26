@@ -140,14 +140,7 @@
   }
   .bar-fill.warn { background: var(--ease-in); }
   .bar-fill.crit { background: var(--hold); }
-  @keyframes headroom-overload {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.45; }
-  }
-  .bar-fill.overload {
-    background: #ef4444;
-    animation: headroom-overload 0.9s ease-in-out infinite;
-  }
+  .bar-fill.overload { background: #ef4444; }
 
   /* Chart containers */
   .chart-wrap { position: relative; height: 56px; margin-top: 8px; }
@@ -244,15 +237,17 @@
   #dr-overrides { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
   .override-item      { font-size: 11px; color: var(--ease-in); }
   .override-item.hold { color: var(--hold); }
-  #dr-headroom { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+  #dr-headroom { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .headroom-item { display: flex; flex-direction: column; gap: 2px; }
   .headroom-row {
     display: grid;
     grid-template-columns: 52px 1fr 44px;
     gap: 8px;
     align-items: center;
   }
-  .headroom-label { font-size: 11px; color: var(--muted); }
-  .headroom-val   { font-size: 11px; font-weight: 700; text-align: right; }
+  .headroom-label  { font-size: 11px; color: var(--muted); }
+  .headroom-val    { font-size: 11px; font-weight: 700; text-align: right; }
+  .headroom-detail { font-size: 10px; color: var(--muted); padding-left: 60px; letter-spacing: 0.01em; }
 
   /* ── RAM Panel ──────────────────────────────────────────────────── */
   #ram-top {
@@ -599,20 +594,29 @@
     </div>
     <div id="dr-overrides"></div>
     <div id="dr-headroom">
-      <div class="headroom-row">
-        <div class="headroom-label">RAM</div>
-        <div class="bar-wrap" style="margin-top:0"><div class="bar-fill" id="hr-ram-bar" style="width:0%"></div></div>
-        <div class="headroom-val" id="hr-ram-val">—</div>
+      <div class="headroom-item">
+        <div class="headroom-row">
+          <div class="headroom-label">RAM</div>
+          <div class="bar-wrap" style="margin-top:0"><div class="bar-fill" id="hr-ram-bar" style="width:0%"></div></div>
+          <div class="headroom-val" id="hr-ram-val">—</div>
+        </div>
+        <div class="headroom-detail" id="hr-ram-detail"></div>
       </div>
-      <div class="headroom-row">
-        <div class="headroom-label">CPU</div>
-        <div class="bar-wrap" style="margin-top:0"><div class="bar-fill" id="hr-cpu-bar" style="width:0%"></div></div>
-        <div class="headroom-val" id="hr-cpu-val">—</div>
+      <div class="headroom-item">
+        <div class="headroom-row">
+          <div class="headroom-label">CPU</div>
+          <div class="bar-wrap" style="margin-top:0"><div class="bar-fill" id="hr-cpu-bar" style="width:0%"></div></div>
+          <div class="headroom-val" id="hr-cpu-val">—</div>
+        </div>
+        <div class="headroom-detail" id="hr-cpu-detail"></div>
       </div>
-      <div class="headroom-row">
-        <div class="headroom-label">VRAM</div>
-        <div class="bar-wrap" style="margin-top:0"><div class="bar-fill" id="hr-vram-bar" style="width:0%"></div></div>
-        <div class="headroom-val" id="hr-vram-val">—</div>
+      <div class="headroom-item">
+        <div class="headroom-row">
+          <div class="headroom-label">VRAM</div>
+          <div class="bar-wrap" style="margin-top:0"><div class="bar-fill" id="hr-vram-bar" style="width:0%"></div></div>
+          <div class="headroom-val" id="hr-vram-val">—</div>
+        </div>
+        <div class="headroom-detail" id="hr-vram-detail"></div>
       </div>
     </div>
   </div>
@@ -1002,20 +1006,25 @@ const handlers = {
     }
 
     const h = d.headroom ?? {};
-    function setHeadroom(barId, valId, val) {
+    const bd = d.breakdown ?? {};
+    function setHeadroom(barId, valId, detailId, val, brk) {
       const overload = val != null && val < 0;
       const pct = overload ? 100 : Math.min(val ?? 0, 100);
       const bar = el(barId);
       bar.style.width = pct + '%';
       bar.classList.toggle('overload', overload);
-      if (!overload) bar.style.background = headroomColor(val ?? 0);
-      else bar.style.background = '';
+      bar.style.background = overload ? '' : headroomColor(val ?? 0);
       el(valId).textContent = (val != null ? val.toFixed(1) : '—') + '%';
       el(valId).style.color = headroomColor(val ?? 0);
+      if (brk && detailId) {
+        const det = el(detailId);
+        det.textContent = `now ${brk.current}% + ${brk.delta}δ → ${brk.projected}% · crit ${brk.threshold}%`;
+        det.style.color = overload ? 'var(--hold)' : 'var(--muted)';
+      }
     }
-    setHeadroom('hr-ram-bar',  'hr-ram-val',  h.ram);
-    setHeadroom('hr-cpu-bar',  'hr-cpu-val',  h.cpu);
-    setHeadroom('hr-vram-bar', 'hr-vram-val', h.gpu_vram);
+    setHeadroom('hr-ram-bar',  'hr-ram-val',  'hr-ram-detail',  h.ram,      bd.ram);
+    setHeadroom('hr-cpu-bar',  'hr-cpu-val',  'hr-cpu-detail',  h.cpu,      bd.cpu);
+    setHeadroom('hr-vram-bar', 'hr-vram-val', 'hr-vram-detail', h.gpu_vram, bd.gpu_vram);
 
     updateFavicon(state);
   },
