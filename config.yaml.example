@@ -33,7 +33,10 @@ ups:
   runtime_warn_m: 10      # EASE_IN when estimated runtime drops below this many minutes
 
 notifications:
-  desktop: true
+  desktop: false            # off by default — notify-send pops top-center and
+                            # occludes app title bars. Strip + favicon are the
+                            # primary signal. Set true if you want foreground
+                            # toasts on HOLD / disk-swap / critical crossings.
   opswire: false            # set to true if you have an ops notification pipeline
   opswire_severity: WARN
   opswire_script: ""        # path to notification script, e.g. ~/ops/infra_notify.sh

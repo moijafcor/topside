@@ -350,12 +350,12 @@ The server dynamically loads every `plugins/*.py` file at startup with no hardco
 
 Alerts are edge-triggered: each threshold fires once on crossing and resets only after the metric drops below the warn level (hysteresis). Dispatch targets:
 
-- **Desktop** — `notify-send`, **critical urgency only** (HOLD state and critical threshold crossings). Warn-level events and EASE_IN transitions are intentionally suppressed to avoid drowning out genuinely urgent alerts.
+- **Desktop** — off by default; opt in via `notifications.desktop: true`. When enabled, dispatches via `notify-send`, **critical urgency only** (HOLD state and critical threshold crossings). Warn-level events and EASE_IN transitions are intentionally suppressed to avoid drowning out genuinely urgent alerts. Default is off because `notify-send` toasts appear top-center on GNOME and occlude app title bars — the strip and favicon are the intended at-a-glance signal.
 - **Ops pipeline** — shell call to `notifications.opswire_script` (e.g. `~/ops/infra_notify.sh`). Receives all severity levels regardless of the desktop filter.
 
 Headroom state transitions that trigger notifications:
 
-| Transition | Severity | Desktop |
+| Transition | Severity | Desktop (if enabled) |
 | --- | --- | --- |
 | any → HOLD | CRITICAL | yes |
 | GO → EASE_IN | WARN | no |
